@@ -1,0 +1,37 @@
+.bundle
+bin
+coverage
+logs
+tmp
+vendor/gems
+.idea
+.byebug_history
+.local/
+.DS_Store
+.lesshst
+*.pem
+*.key
+*.crt
+*.csr
+*.secret
+
+/.bundle
+/vendor/gems
+
+# Ignore binstubs but do commit the one specific for this code.
+bin/*
+
+# There's a place for local caching of container gems to make local builds faster.
+# Keep the .keep file but not the gems themselves
+vendor/container-gems/*
+!vendor/container-gems/.keep
+
+# Coverage reports
+coverage/*
+
+.*.swp
+
+# Ignore JetBrains IDEs
+.idea
+
+issue-db-*.gem

@@ -1,17 +1,19 @@
-name: lint
+name: test
 
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: lint
+  test:
+    name: test
     runs-on: ubuntu-latest
 
     steps:

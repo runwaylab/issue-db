@@ -3,7 +3,7 @@
 require "spec_helper"
 require "octokit"
 
-RSpec.describe "GitHub API", :vcr do
+describe "GitHub API", :vcr do
   before(:all) do
     @repo = "monalisa/octo-awesome"
     @login = "monalisa"

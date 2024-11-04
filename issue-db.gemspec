@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
     "bug_tracker_uri" => "https://github.com/runwaylab/issue-db/issues"
   }
 
-  spec.add_dependency "logger", "~> 1.6"
+  spec.add_dependency "redacting-logger", "~> 1.4"
   spec.add_dependency "retryable", "~> 3.0", ">= 3.0.5"
   spec.add_dependency "octokit", "~> 9.2"
 

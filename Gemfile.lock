@@ -2,8 +2,8 @@ PATH
   remote: .
   specs:
     issue-db (0.0.1)
-      logger (~> 1.6)
       octokit (~> 9.2)
+      redacting-logger (~> 1.4)
       retryable (~> 3.0, >= 3.0.5)
 
 GEM
@@ -65,6 +65,8 @@ GEM
     rainbow (3.1.1)
     rdoc (6.7.0)
       psych (>= 4.0.0)
+    redacting-logger (1.4.0)
+      logger (~> 1.6)
     regexp_parser (2.9.2)
     reline (0.5.10)
       io-console (~> 0.5)

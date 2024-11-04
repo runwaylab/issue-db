@@ -13,4 +13,5 @@ group :development do
   gem "rubocop-rspec", "~> 3.1"
   gem "simplecov", "~> 0.22"
   gem "simplecov-erb", "~> 1.0"
+  gem "vcr", "~> 6.3", ">= 6.3.1"
 end

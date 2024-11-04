@@ -7,7 +7,7 @@ describe "GitHub API", :vcr do
   before(:all) do
     @repo = "monalisa/octo-awesome"
     @login = "monalisa"
-    @client = Octokit::Client.new(login: @login, access_token: ENV["GITHUB_TOKEN"], page_size: 100)
+    @client = Octokit::Client.new(access_token: ENV["GITHUB_TOKEN"], page_size: 100)
     @client.auto_paginate = true
   end
 

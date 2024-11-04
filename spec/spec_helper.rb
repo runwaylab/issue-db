@@ -28,6 +28,16 @@ SimpleCov.start do
   add_filter "vendor/gems/"
 end
 
+# Globally capture all sleep calls
+RSpec.configure do |config|
+  config.before(:each) do
+    allow(Kernel).to receive(:sleep)
+    allow_any_instance_of(Kernel).to receive(:sleep)
+    allow_any_instance_of(Object).to receive(:sleep)
+  end
+end
+
+
 require "vcr"
 require "webmock/rspec"
 

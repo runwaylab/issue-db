@@ -108,4 +108,43 @@ RSpec.describe "GitHub API", :vcr do
     comments = @client.issue_comments(@repo, issue_number)
     expect(comments.map(&:id)).not_to include(comment.id)
   end
+
+  it "updates issue labels" do
+    issue_number = 1
+    labels = ["bug", "enhancement"]
+    issue = @client.update_issue(@repo, issue_number, labels: labels)
+    expect(issue.labels.map(&:name)).to include(*labels)
+  end
+
+  it "updates issue milestones" do
+    issue_number = 1
+    milestone_number = 1 # Replace with a valid milestone number
+    issue = @client.update_issue(@repo, issue_number, milestone: milestone_number)
+    expect(issue.milestone.number).to eq(milestone_number)
+  end
+
+  it "lists all labels for a repository" do
+    labels = @client.labels(@repo)
+    expect(labels).not_to be_empty
+  end
+
+  it "lists all milestones for a repository" do
+    milestones = @client.milestones(@repo)
+    expect(milestones).not_to be_empty
+  end
+
+  it "lists all issues assigned to a user" do
+    issues = @client.list_issues(@repo, assignee: @login)
+    expect(issues).not_to be_empty
+  end
+
+  it "lists all issues created by a user" do
+    issues = @client.list_issues(@repo, creator: @login)
+    expect(issues).not_to be_empty
+  end
+
+  it "lists all issues mentioning a user" do
+    issues = @client.list_issues(@repo, mentioned: @login)
+    expect(issues).not_to be_empty
+  end
 end

@@ -13,6 +13,10 @@ class Database
     @repo = repo
   end
 
+  def create
+    "TODO"
+  end
+
   def read(issue_number)
     @log.debug("reading issue: #{issue_number}")
     issue = Retryable.with_context(:default) do
@@ -22,7 +26,7 @@ class Database
     return issue
   end
 
-  def write
+  def update
     "TODO"
   end
 

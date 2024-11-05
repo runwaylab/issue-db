@@ -6,4 +6,4 @@
 [![acceptance](https://github.com/runwaylab/issue-db/actions/workflows/acceptance.yml/badge.svg)](https://github.com/runwaylab/issue-db/actions/workflows/acceptance.yml)
 [![release](https://github.com/runwaylab/issue-db/actions/workflows/release.yml/badge.svg)](https://github.com/runwaylab/issue-db/actions/workflows/release.yml)
 
-Use GitHub Issues as a NoSQL JSON document db
+A Ruby Gem to use GitHub Issues as a NoSQL JSON document db

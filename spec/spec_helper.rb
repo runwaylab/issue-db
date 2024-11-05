@@ -40,7 +40,6 @@ RSpec.configure do |config|
   end
 end
 
-
 require "vcr"
 require "webmock/rspec"
 

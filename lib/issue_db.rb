@@ -6,6 +6,7 @@ require_relative "version"
 require_relative "issue_db/utils/retry"
 require_relative "issue_db/authentication"
 require_relative "issue_db/models/repository"
+require_relative "issue_db/database"
 
 class IssueDB
   include Version
@@ -24,5 +25,15 @@ class IssueDB
     @version = VERSION
     @client = Authentication.login(octokit_client)
     @repo = Repository.new(repo)
+  end
+
+  def read(key)
+    db.read(key)
+  end
+
+  protected
+
+  def db
+    @db ||= Database.new(@log, @client, @repo)
   end
 end

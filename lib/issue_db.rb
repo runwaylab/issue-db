@@ -15,6 +15,6 @@ class IssueDB
   def initialize(log: nil, octokit_client: nil)
     @log = log || RedactingLogger.new($stdout, level: ENV.fetch("LOG_LEVEL", "INFO").upcase)
     @version = VERSION
-    @client = login(octokit_client)
+    @client = Authentication.login(octokit_client)
   end
 end

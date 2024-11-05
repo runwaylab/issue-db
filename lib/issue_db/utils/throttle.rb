@@ -9,6 +9,8 @@ module Throttle
     @log.debug("checking rate limit status for type: #{type}")
     # make a request to get the comprehensive rate limit status
     # note: checking the rate limit status does not count against the rate limit in any way
+
+    # TODO: To speed this up and reduce network requests, the result from @client.get("rate_limit") should be cached as an instance variable where this module is included (Database class). I already checked and simply calling the @client.rate_limit method won't work as it uses `last_response` and that response could be from a method that used the :core rate limit, :search rate limit, etc. This means that the last_response won't accurately capture all rate limits as it is endpoint specific. We need to do a full call to /rate_limit and then cache that entire result set and subtract from it based on which endpoint we are calling.
     rate_limit_all = Retryable.with_context(:default) do
       @client.get("rate_limit")
     end

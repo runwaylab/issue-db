@@ -6,6 +6,8 @@ require "simplecov"
 require "rspec"
 require "simplecov-erb"
 
+REPO = "monalisa/octo-awesome"
+
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 
 SimpleCov.root File.expand_path("..", File.dirname(__FILE__))

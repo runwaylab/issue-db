@@ -13,7 +13,7 @@ describe IssueDB do
     allow(Octokit::Client).to receive(:new).and_return(client)
   end
 
-  subject { described_class.new(log:, octokit_client: client) }
+  subject { described_class.new(REPO, log:, octokit_client: client) }
 
   it "is a valid version string" do
     expect(subject.version).to match(/\A\d+\.\d+\.\d+(\.\w+)?\z/)

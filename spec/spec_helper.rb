@@ -6,6 +6,9 @@ require "simplecov"
 require "rspec"
 require "simplecov-erb"
 
+REPO = "monalisa/octo-awesome"
+FAKE_TOKEN = "fake_token"
+
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 
 SimpleCov.root File.expand_path("..", File.dirname(__FILE__))
@@ -26,6 +29,15 @@ end
 SimpleCov.start do
   add_filter "spec/"
   add_filter "vendor/gems/"
+end
+
+# Globally capture all sleep calls
+RSpec.configure do |config|
+  config.before(:each) do
+    allow(Kernel).to receive(:sleep)
+    allow_any_instance_of(Kernel).to receive(:sleep)
+    allow_any_instance_of(Object).to receive(:sleep)
+  end
 end
 
 require "vcr"

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe IssueDB do
+describe Version do
   it "is a valid version string" do
     expect(described_class::VERSION).to match(/\A\d+\.\d+\.\d+(\.\w+)?\z/)
   end

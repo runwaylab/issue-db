@@ -7,6 +7,7 @@ require "rspec"
 require "simplecov-erb"
 
 REPO = "monalisa/octo-awesome"
+FAKE_TOKEN = "fake_token"
 
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 

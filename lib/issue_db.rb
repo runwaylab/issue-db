@@ -3,6 +3,7 @@
 require "redacting_logger"
 
 require_relative "version"
+require_relative "issue_db/utils/retry"
 require_relative "issue_db/authentication"
 
 class IssueDB
@@ -14,6 +15,7 @@ class IssueDB
 
   def initialize(log: nil, octokit_client: nil)
     @log = log || RedactingLogger.new($stdout, level: ENV.fetch("LOG_LEVEL", "INFO").upcase)
+    Retry.setup!(log: @log)
     @version = VERSION
     @client = Authentication.login(octokit_client)
   end

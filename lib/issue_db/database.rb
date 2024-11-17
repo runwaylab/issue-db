@@ -11,6 +11,7 @@ class Database
     @log = log
     @client = client
     @repo = repo
+    @rate_limit_all = nil
   end
 
   def create

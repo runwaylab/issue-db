@@ -1,6 +1,30 @@
 # frozen_string_literal: true
 
 module Throttle
+  def fetch_rate_limit
+    @rate_limit_all = Retryable.with_context(:default) do
+      @client.get("rate_limit")
+    end
+  end
+
+  def update_rate_limit(type)
+    @rate_limit_all[:resources][type][:remaining] -= 1
+  end
+
+  def rate_limit_details(type)
+    # fetch the provided rate limit type
+    # rate_limit resulting structure: {:limit=>5000, :used=>15, :remaining=>4985, :reset=>1713897293}
+    rate_limit = @rate_limit_all[:resources][type]
+
+    # calculate the time the rate limit will reset
+    resets_at = Time.at(rate_limit[:reset]).utc
+
+    return {
+      rate_limit: rate_limit,
+      resets_at: resets_at,
+    }
+  end
+
   # A helper method to check the client's current rate limit status before making a request
   # NOTE: This method will sleep for the remaining time until the rate limit resets if the rate limit is hit
   # :param: type [Symbol] the type of rate limit to check (core, search, graphql, etc) - default: :core
@@ -9,18 +33,11 @@ module Throttle
     @log.debug("checking rate limit status for type: #{type}")
     # make a request to get the comprehensive rate limit status
     # note: checking the rate limit status does not count against the rate limit in any way
+    fetch_rate_limit if @rate_limit_all.nil?
 
-    # TODO: To speed this up and reduce network requests, the result from @client.get("rate_limit") should be cached as an instance variable where this module is included (Database class). I already checked and simply calling the @client.rate_limit method won't work as it uses `last_response` and that response could be from a method that used the :core rate limit, :search rate limit, etc. This means that the last_response won't accurately capture all rate limits as it is endpoint specific. We need to do a full call to /rate_limit and then cache that entire result set and subtract from it based on which endpoint we are calling.
-    rate_limit_all = Retryable.with_context(:default) do
-      @client.get("rate_limit")
-    end
-
-    # fetch the provided rate limit type
-    # rate_limit resulting structure: {:limit=>5000, :used=>15, :remaining=>4985, :reset=>1713897293}
-    rate_limit = rate_limit_all[:resources][type]
-
-    # calculate the time the rate limit will reset
-    resets_at = Time.at(rate_limit[:reset]).utc
+    details = rate_limit_details(type)
+    rate_limit = details[:rate_limit]
+    resets_at = details[:resets_at]
 
     @log.debug(
       "rate_limit remaining: #{rate_limit.remaining} - " \
@@ -30,9 +47,25 @@ module Throttle
     )
 
     # exit early if the rate limit is not hit (we have remaining requests)
-    return unless rate_limit.remaining.zero?
+    unless rate_limit.remaining.zero?
+      update_rate_limit(type)
+      return
+    end
 
-    # if we make it here, we have hit the rate limit
+    # if we make it here, we (probably) have hit the rate limit
+    # fetch the rate limit again if we are at zero or if the rate limit reset time is in the past
+    fetch_rate_limit if rate_limit.remaining.zero? || rate_limit.remaining < 0 || resets_at < Time.now
+
+    details = rate_limit_details(type)
+    rate_limit = details[:rate_limit]
+    resets_at = details[:resets_at]
+
+    # exit early if the rate limit is not actually hit (we have remaining requests)
+    unless rate_limit.remaining.zero?
+      @log.debug("rate_limit not hit - remaining: #{rate_limit.remaining}")
+      update_rate_limit(type)
+      return
+    end
 
     # calculate the sleep duration - ex: reset time - current time
     sleep_duration = resets_at - Time.now

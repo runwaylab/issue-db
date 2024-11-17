@@ -39,4 +39,13 @@ describe Database, :vcr do
     expect(issue.state).to eq("closed")
     expect(issue.html_url).to match(/monalisa\/octo-awesome\/issues\/1/)
   end
+
+  it "thinks that rate limits are hit while trying to read an issue but they are not" do
+    expect(log).to receive(:debug).with(/checking rate limit status for type: core/)
+    expect(log).to receive(:debug).with("rate_limit not hit - remaining: 1")
+    issue = subject.read(1)
+    expect(issue.number).to eq(1)
+    expect(issue.state).to eq("closed")
+    expect(issue.html_url).to match(/monalisa\/octo-awesome\/issues\/1/)
+  end
 end

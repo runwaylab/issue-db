@@ -2,6 +2,7 @@
 
 require_relative "cache"
 require_relative "utils/throttle"
+require_relative "models/record"
 
 # class DatabaseError < StandardError; end
 
@@ -32,7 +33,7 @@ class Database
       # if include_closed is true, we will include closed issues (all types) in the search
       next unless issue[:title] == key && ((include_closed) || issue[:state] == "open")
 
-      return issue
+      return Record.new(issue)
     end
 
     # if we make it here, no issue was found in the cache for the given key (title)

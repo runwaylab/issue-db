@@ -8,6 +8,10 @@ module Parse
   # - body_before: the body of the issue before the data
   # - data: the parsed data as a hash
   # - body_after: the body of the issue after the data
+  # :param body [String] the body of the issue to parse data from
+  # :param guard_start [String] the guard start string which is used to identify the start of the data
+  # :param guard_end [String] the guard end string which is used to identify the end of the data
+  # :return [Hash] the parsed issue body
   def parse(body, guard_start: "<!--- issue-db-start -->", guard_end: "<!--- issue-db-end -->")
     body_array = body.split("\n")
     start_index = body_array.index(guard_start)

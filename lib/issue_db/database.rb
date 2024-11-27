@@ -3,12 +3,14 @@
 require_relative "cache"
 require_relative "utils/throttle"
 require_relative "models/record"
+require_relative "utils/generate"
 
 # class DatabaseError < StandardError; end
 
 class Database
   include Cache
   include Throttle
+  include Generate
 
   def initialize(log, client, repo, label, cache_expiry)
     @log = log
@@ -21,17 +23,42 @@ class Database
     @issues_last_updated = nil
   end
 
-  def create
-    "TODO"
-  end
+  def create(key, data, options = {})
+    @log.debug("attempting to create: #{key}")
 
-  def read(key, include_closed: false)
-    @log.debug("attempting to read: #{key}")
+    body_before = options[:body_before] || ""
+    body_after = options[:body_after] || ""
 
-    @issues.each do |issue|
+    body = generate(data, body_before:, body_after:)
+
+    issues.each do |issue|
       # if there is an exact match and the issue is open, we found a match
       # if include_closed is true, we will include closed issues (all types) in the search
-      next unless issue[:title] == key && ((include_closed) || issue[:state] == "open")
+      next unless issue[:title] == key && ((options[:include_closed]) || issue[:state] == "open")
+
+      @log.warn("skipping issue creation and returning existing issue - an issue already exists with the key: #{key}")
+      return Record.new(issue)
+    end
+
+    # if we make it here, no existing issues were found so we can safely create one
+    issue = Retryable.with_context(:default) do
+      wait_for_rate_limit!
+      @client.create_issue(@repo.full_name, key, body, { labels: @label })
+    end
+
+    # append the newly created issue to the issues cache
+    @issues << issue
+
+    return Record.new(issue)
+  end
+
+  def read(key, options = {})
+    @log.debug("attempting to read: #{key}")
+
+    issues.each do |issue|
+      # if there is an exact match and the issue is open, we found a match
+      # if include_closed is true, we will include closed issues (all types) in the search
+      next unless issue[:title] == key && ((options[:include_closed]) || issue[:state] == "open")
 
       return Record.new(issue)
     end

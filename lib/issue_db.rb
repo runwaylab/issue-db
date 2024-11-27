@@ -36,7 +36,11 @@ class IssueDB
     init! if init
   end
 
-  def read(key)
+  def create(key, data, options = {})
+    db.create(key, data, options)
+  end
+
+  def read(key, options = {})
     db.read(key)
   end
 

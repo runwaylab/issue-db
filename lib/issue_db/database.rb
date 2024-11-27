@@ -26,10 +26,7 @@ class Database
   def create(key, data, options = {})
     @log.debug("attempting to create: #{key}")
 
-    body_before = options[:body_before] || ""
-    body_after = options[:body_after] || ""
-
-    body = generate(data, body_before:, body_after:)
+    body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
     issues.each do |issue|
       # if there is an exact match and the issue is open, we found a match

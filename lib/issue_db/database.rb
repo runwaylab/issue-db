@@ -43,6 +43,7 @@ class Database
     # append the newly created issue to the issues cache
     @issues << issue
 
+    @log.debug("issue created: #{key}")
     return Record.new(issue)
   end
 
@@ -52,6 +53,7 @@ class Database
 
     return nil if issue.nil?
 
+    @log.debug("issue found: #{key}")
     return Record.new(issue)
   end
 
@@ -72,11 +74,27 @@ class Database
     # update the issue in the cache using the reference we have
     @issues[@issues.index(issue)] = updated_issue
 
+    @log.debug("issue updated: #{key}")
     return Record.new(updated_issue)
   end
 
-  def delete
-    "TODO"
+  def delete(key, options = {})
+    @log.debug("attempting to delete: #{key}")
+
+    issue = find_issue_by_key(key, options)
+
+    return nil if issue.nil?
+
+    deleted_issue = Retryable.with_context(:default) do
+      wait_for_rate_limit!
+      @client.close_issue(@repo.full_name, issue.number)
+    end
+
+    # remove the issue from the cache using the reference we have
+    @issues.delete(issue)
+
+    # return the deleted issue as a Record object as it may contain useful data
+    return Record.new(deleted_issue)
   end
 
   def list

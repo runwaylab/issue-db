@@ -48,6 +48,10 @@ class IssueDB
     db.update(key, data, options)
   end
 
+  def delete(key, options = {})
+    db.delete(key, options)
+  end
+
   def refresh!
     db.refresh!
   end

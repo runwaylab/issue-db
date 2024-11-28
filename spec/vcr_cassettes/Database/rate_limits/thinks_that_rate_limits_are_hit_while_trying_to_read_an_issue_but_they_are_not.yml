@@ -77,7 +77,86 @@ http_interactions:
       - C7CF:124D:8DF5184:8FF7392:6747E361
     body:
       encoding: ASCII-8BIT
-      string: '{"resources":{"core":{"limit":5000,"used":223,"remaining":4777,"reset":1732765877},"search":{"limit":30,"used":2,"remaining":28,"reset":1732764572},"graphql":{"limit":5000,"used":252,"remaining":4748,"reset":1732765900},"integration_manifest":{"limit":5000,"used":0,"remaining":5000,"reset":1732768113},"source_import":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"code_scanning_upload":{"limit":1000,"used":0,"remaining":1000,"reset":1732768113},"actions_runner_registration":{"limit":10000,"used":0,"remaining":10000,"reset":1732768113},"scim":{"limit":15000,"used":0,"remaining":15000,"reset":1732768113},"dependency_snapshots":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"audit_log":{"limit":1750,"used":0,"remaining":1750,"reset":1732768113},"audit_log_streaming":{"limit":15,"used":0,"remaining":15,"reset":1732768113},"code_search":{"limit":10,"used":0,"remaining":10,"reset":1732764573}},"rate":{"limit":5000,"used":223,"remaining":4777,"reset":1732765877}}'
+      string: '{"resources":{"core":{"limit":5000,"used":5000,"remaining":0,"reset":1732765877},"search":{"limit":30,"used":2,"remaining":28,"reset":1732764572},"graphql":{"limit":5000,"used":252,"remaining":4748,"reset":1732765900},"integration_manifest":{"limit":5000,"used":0,"remaining":5000,"reset":1732768113},"source_import":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"code_scanning_upload":{"limit":1000,"used":0,"remaining":1000,"reset":1732768113},"actions_runner_registration":{"limit":10000,"used":0,"remaining":10000,"reset":1732768113},"scim":{"limit":15000,"used":0,"remaining":15000,"reset":1732768113},"dependency_snapshots":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"audit_log":{"limit":1750,"used":0,"remaining":1750,"reset":1732768113},"audit_log_streaming":{"limit":15,"used":0,"remaining":15,"reset":1732768113},"code_search":{"limit":10,"used":0,"remaining":10,"reset":1732764573}},"rate":{"limit":5000,"used":223,"remaining":4777,"reset":1732765877}}'
+  recorded_at: Mon, 01 Jan 2024 08:00:00 GMT
+- request:
+    method: get
+    uri: https://api.github.com/rate_limit
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      User-Agent:
+      - Octokit Ruby Gem 9.2.0
+      Content-Type:
+      - application/json
+      Authorization:
+      - token <GITHUB_TOKEN>
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Thu, 28 Nov 2024 03:28:33 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Cache-Control:
+      - no-cache
+      X-Oauth-Scopes:
+      - repo
+      X-Accepted-Oauth-Scopes:
+      - ''
+      Github-Authentication-Token-Expiration:
+      - 2024-12-27 17:45:40 UTC
+      X-Github-Media-Type:
+      - github.v3; format=json
+      X-Github-Api-Version-Selected:
+      - '2022-11-28'
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4777'
+      X-Ratelimit-Reset:
+      - '1732765877'
+      X-Ratelimit-Used:
+      - '223'
+      X-Ratelimit-Resource:
+      - core
+      Access-Control-Expose-Headers:
+      - ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes,
+        X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO,
+        X-GitHub-Request-Id, Deprecation, Sunset
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - '0'
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      Vary:
+      - Accept-Encoding, Accept, X-Requested-With
+      Transfer-Encoding:
+      - chunked
+      Server:
+      - github.com
+      X-Github-Request-Id:
+      - C7CF:124D:8DF5184:8FF7392:6747E361
+    body:
+      encoding: ASCII-8BIT
+      string: '{"resources":{"core":{"limit":5000,"used":4000,"remaining":1000,"reset":1732765877},"search":{"limit":30,"used":2,"remaining":28,"reset":1732764572},"graphql":{"limit":5000,"used":252,"remaining":4748,"reset":1732765900},"integration_manifest":{"limit":5000,"used":0,"remaining":5000,"reset":1732768113},"source_import":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"code_scanning_upload":{"limit":1000,"used":0,"remaining":1000,"reset":1732768113},"actions_runner_registration":{"limit":10000,"used":0,"remaining":10000,"reset":1732768113},"scim":{"limit":15000,"used":0,"remaining":15000,"reset":1732768113},"dependency_snapshots":{"limit":100,"used":0,"remaining":100,"reset":1732764573},"audit_log":{"limit":1750,"used":0,"remaining":1750,"reset":1732768113},"audit_log_streaming":{"limit":15,"used":0,"remaining":15,"reset":1732768113},"code_search":{"limit":10,"used":0,"remaining":10,"reset":1732764573}},"rate":{"limit":5000,"used":223,"remaining":4777,"reset":1732765877}}'
   recorded_at: Mon, 01 Jan 2024 08:00:00 GMT
 - request:
     method: get

@@ -46,7 +46,8 @@ describe Database, :vcr do
 
     it "thinks that rate limits are hit while trying to read an issue but they are not" do
       expect(log).to receive(:debug).with(/checking rate limit status for type: core/)
-      expect(log).to receive(:debug).with(/rate_limit remaining: 4777/)
+      expect(log).to receive(:debug).with(/rate_limit remaining: 0/)
+      expect(log).to receive(:debug).with(/rate_limit not hit - remaining: 1000/)
       issue = subject.create("event999", {cool: true})
       expect(issue.source_data.number).to eq(11)
       expect(issue.source_data.state).to eq("open")

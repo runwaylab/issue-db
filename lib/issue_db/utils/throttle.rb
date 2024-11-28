@@ -7,6 +7,7 @@ module Throttle
     end
   end
 
+  # Update the in-memory "cached" rate limit value for the given rate limit type
   def update_rate_limit(type)
     @rate_limit_all[:resources][type][:remaining] -= 1
   end

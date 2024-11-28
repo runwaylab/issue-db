@@ -7,7 +7,7 @@ require "rspec"
 require "simplecov-erb"
 
 REPO = "runwaylab/issue-db"
-FAKE_TOKEN = "fake_token"
+FAKE_TOKEN = ENV["GITHUB_TOKEN"]
 
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 

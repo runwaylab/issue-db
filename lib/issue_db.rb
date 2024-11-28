@@ -52,6 +52,10 @@ class IssueDB
     db.delete(key, options)
   end
 
+  def list_keys(options = {})
+    db.list_keys(options)
+  end
+
   def refresh!
     db.refresh!
   end

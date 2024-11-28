@@ -87,8 +87,16 @@ class Database
     return Record.new(deleted_issue)
   end
 
-  def list
-    "TODO"
+  # List all keys in the database
+  # This will return an array of strings that represent the issue titles that are "keys" in the database
+  def list_keys(options = {})
+    keys = issues.select do |issue|
+      options[:include_closed] || issue[:state] == "open"
+    end.map do |issue|
+      issue[:title]
+    end
+
+    return keys
   end
 
   def refresh!

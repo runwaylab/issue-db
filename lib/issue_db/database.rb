@@ -89,6 +89,11 @@ class Database
 
   # List all keys in the database
   # This will return an array of strings that represent the issue titles that are "keys" in the database
+  # :param: options [Hash] a hash of options to pass through to the search method
+  # :return: An array of strings that represent the issue titles that are "keys" in the database
+  # usage example:
+  # options = {include_closed: true}
+  # keys = db.list_keys(options)
   def list_keys(options = {})
     keys = issues.select do |issue|
       options[:include_closed] || issue[:state] == "open"
@@ -99,6 +104,26 @@ class Database
     return keys
   end
 
+  # List all issues/record in the database as Record objects (parsed)
+  # This will return an array of Record objects that represent the issues in the database
+  # :param: options [Hash] a hash of options to pass through to the search method
+  # :return: An array of Record objects that represent the issues in the database
+  # usage example:
+  # options = {include_closed: true}
+  # records = db.list(options)
+  def list(options = {})
+    records = issues.select do |issue|
+      options[:include_closed] || issue[:state] == "open"
+    end.map do |issue|
+      Record.new(issue)
+    end
+
+    return records
+  end
+
+  # Force a refresh of the issues cache
+  # This will update the issues cache with the latest issues from the repo
+  # :return: The updated issue cache as a list of issues (Hash objects not parsed)
   def refresh!
     update_issue_cache!
   end
@@ -106,7 +131,7 @@ class Database
   protected
 
   def not_found!(key)
-    raise RecordNotFound, "no issue found for key: #{key}"
+    raise RecordNotFound, "no record found for key: #{key}"
   end
 
   # A helper method to search through the issues cache and return the first issue that matches the given key

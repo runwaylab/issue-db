@@ -29,7 +29,7 @@ class Database
     issue = find_issue_by_key(key, options)
     if issue
       @log.warn("skipping issue creation and returning existing issue - an issue already exists with the key: #{key}")
-      return issue
+      return Record.new(issue)
     end
 
     body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
@@ -48,7 +48,11 @@ class Database
 
   def read(key, options = {})
     @log.debug("attempting to read: #{key}")
-    return find_issue_by_key(key, options)
+    issue = find_issue_by_key(key, options)
+
+    return nil if issue.nil?
+
+    return Record.new(issue)
   end
 
   def update
@@ -72,19 +76,19 @@ class Database
   # A helper method to search through the issues cache and return the first issue that matches the given key
   # :param: key [String] the key (issue title) to search for
   # :param: options [Hash] a hash of options to pass through to the search method
-  # :return: The issue as a Record object if found, otherwise nil
+  # :return: A direct reference to the issue as a Hash object if found, otherwise nil
   def find_issue_by_key(key, options = {})
-    issues.each do |issue|
-      # if there is an exact match and the issue is open, we found a match
-      # if include_closed is true, we will include closed issues (all types) in the search
-      next unless issue[:title] == key && ((options[:include_closed]) || issue[:state] == "open")
-
-      return Record.new(issue)
+    issue = issues.find do |issue|
+      issue[:title] == key && (options[:include_closed] || issue[:state] == "open")
     end
 
-    # if we make it here, no issue was found in the cache for the given key (title)
-    @log.debug("no issue found in cache for: #{key}")
-    return nil
+    if issue
+      @log.debug("issue found in cache for: #{key}")
+      return issue
+    else
+      @log.debug("no issue found in cache for: #{key}")
+      return nil
+    end
   end
 
   def issues

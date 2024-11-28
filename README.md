@@ -5,5 +5,6 @@
 [![build](https://github.com/runwaylab/issue-db/actions/workflows/build.yml/badge.svg)](https://github.com/runwaylab/issue-db/actions/workflows/build.yml)
 [![acceptance](https://github.com/runwaylab/issue-db/actions/workflows/acceptance.yml/badge.svg)](https://github.com/runwaylab/issue-db/actions/workflows/acceptance.yml)
 [![release](https://github.com/runwaylab/issue-db/actions/workflows/release.yml/badge.svg)](https://github.com/runwaylab/issue-db/actions/workflows/release.yml)
+[![coverage](./docs/assets/coverage.svg)](./docs/assets/coverage.svg)
 
 A Ruby Gem to use GitHub Issues as a NoSQL JSON document db

@@ -3,9 +3,7 @@
 require "rspec"
 require_relative "../../lib/issue_db"
 
-REPO = "runwaylab/issue-db"
-
-db = IssueDB.new(REPO)
+db = IssueDB.new("runwaylab/issue-db")
 
 options = {
   include_closed: true,

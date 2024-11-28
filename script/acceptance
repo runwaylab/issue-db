@@ -1,0 +1,3 @@
+#!/bin/bash
+
+bundle exec bin/rspec spec/acceptance

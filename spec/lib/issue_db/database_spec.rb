@@ -26,11 +26,13 @@ describe Database, :vcr do
     expect(subject.class).to eq(Database)
   end
 
-  it "reads a single issue successfully" do
-    issue = subject.read("event456")
-    expect(issue.source_data.number).to eq(8)
-    expect(issue.source_data.state).to eq("open")
-    expect(issue.source_data.html_url).to match(/runwaylab\/issue-db\/issues\/8/)
+  context "read" do
+    it "reads a single issue successfully" do
+      issue = subject.read("event456")
+      expect(issue.source_data.number).to eq(8)
+      expect(issue.source_data.state).to eq("open")
+      expect(issue.source_data.html_url).to match(/runwaylab\/issue-db\/issues\/8/)
+    end
   end
 
   context "rate limits" do

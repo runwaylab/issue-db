@@ -30,4 +30,5 @@ jobs:
       - name: acceptance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENV: acceptance
         run: script/acceptance

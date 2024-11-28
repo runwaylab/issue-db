@@ -5,7 +5,7 @@ require_relative "utils/throttle"
 require_relative "models/record"
 require_relative "utils/generate"
 
-# class DatabaseError < StandardError; end
+class RecordNotFound < StandardError; end
 
 class Database
   include Cache
@@ -25,7 +25,6 @@ class Database
 
   def create(key, data, options = {})
     @log.debug("attempting to create: #{key}")
-
     issue = find_issue_by_key(key, options)
     if issue
       @log.warn("skipping issue creation and returning existing issue - an issue already exists with the key: #{key}")
@@ -50,19 +49,13 @@ class Database
   def read(key, options = {})
     @log.debug("attempting to read: #{key}")
     issue = find_issue_by_key(key, options)
-
-    return nil if issue.nil?
-
     @log.debug("issue found: #{key}")
     return Record.new(issue)
   end
 
   def update(key, data, options = {})
     @log.debug("attempting to update: #{key}")
-
     issue = find_issue_by_key(key, options)
-
-    return nil if issue.nil?
 
     body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
@@ -80,17 +73,14 @@ class Database
 
   def delete(key, options = {})
     @log.debug("attempting to delete: #{key}")
-
     issue = find_issue_by_key(key, options)
-
-    return nil if issue.nil?
 
     deleted_issue = Retryable.with_context(:default) do
       wait_for_rate_limit!
       @client.close_issue(@repo.full_name, issue.number)
     end
 
-    # remove the issue from the cache using the reference we have
+    # remove the issue from the cache
     @issues.delete(issue)
 
     # return the deleted issue as a Record object as it may contain useful data
@@ -107,22 +97,26 @@ class Database
 
   protected
 
+  def not_found!(key)
+    raise RecordNotFound, "no issue found for key: #{key}"
+  end
+
   # A helper method to search through the issues cache and return the first issue that matches the given key
   # :param: key [String] the key (issue title) to search for
   # :param: options [Hash] a hash of options to pass through to the search method
-  # :return: A direct reference to the issue as a Hash object if found, otherwise nil
+  # :return: A direct reference to the issue as a Hash object if found, otherwise throws a RecordNotFound error
   def find_issue_by_key(key, options = {})
     issue = issues.find do |issue|
       issue[:title] == key && (options[:include_closed] || issue[:state] == "open")
     end
 
-    if issue
-      @log.debug("issue found in cache for: #{key}")
-      return issue
-    else
+    if issue.nil?
       @log.debug("no issue found in cache for: #{key}")
-      return nil
+      not_found!(key)
     end
+
+    @log.debug("issue found in cache for: #{key}")
+    return issue
   end
 
   def issues

@@ -41,11 +41,13 @@ class Database
   # db.create("event123", {cool: true, data: "here"}, options)
   def create(key, data, options = {})
     @log.debug("attempting to create: #{key}")
-    issue = find_issue_by_key(key, options)
+    issue = find_issue_by_key(key, options, create_mode: true)
     if issue
       @log.warn("skipping issue creation and returning existing issue - an issue already exists with the key: #{key}")
       return Record.new(issue)
     end
+
+    # if we make it here, no existing issues were found so we can safely create one
 
     body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
@@ -172,14 +174,18 @@ class Database
   # A helper method to search through the issues cache and return the first issue that matches the given key
   # :param: key [String] the key (issue title) to search for
   # :param: options [Hash] a hash of options to pass through to the search method
+  # :param: create_mode [Boolean] a flag to indicate whether or not we are in create mode
   # :return: A direct reference to the issue as a Hash object if found, otherwise throws a RecordNotFound error
-  def find_issue_by_key(key, options = {})
+  # ... unless create_mode is true, in which case it returns nil as a signal to proceed with creating the issue
+  def find_issue_by_key(key, options = {}, create_mode: false)
     issue = issues.find do |issue|
       issue[:title] == key && (options[:include_closed] || issue[:state] == "open")
     end
 
     if issue.nil?
       @log.debug("no issue found in cache for: #{key}")
+      return nil if create_mode
+
       not_found!(key)
     end
 

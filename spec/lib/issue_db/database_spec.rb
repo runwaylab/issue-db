@@ -35,6 +35,12 @@ describe Database, :vcr do
     end
   end
 
+  context "create" do
+    it "fails due to bad credentials" do
+      expect { subject.create("event456", {cool: true}) }.to raise_error(StandardError, /401 - Bad credentials/)
+    end
+  end
+
   context "rate limits" do
     it "hits rate limits while trying to read an issue" do
       expect(log).to receive(:debug).with(/checking rate limit status for type: search/)

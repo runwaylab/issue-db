@@ -44,6 +44,10 @@ class IssueDB
     db.read(key)
   end
 
+  def update(key, data, options = {})
+    db.update(key, data, options)
+  end
+
   def refresh!
     db.refresh!
   end

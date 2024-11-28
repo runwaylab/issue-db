@@ -55,8 +55,24 @@ class Database
     return Record.new(issue)
   end
 
-  def update
-    "TODO"
+  def update(key, data, options = {})
+    @log.debug("attempting to update: #{key}")
+
+    issue = find_issue_by_key(key, options)
+
+    return nil if issue.nil?
+
+    body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
+
+    updated_issue = Retryable.with_context(:default) do
+      wait_for_rate_limit!
+      @client.update_issue(@repo.full_name, issue.number, key, body)
+    end
+
+    # update the issue in the cache using the reference we have
+    @issues[@issues.index(issue)] = updated_issue
+
+    return Record.new(updated_issue)
   end
 
   def delete

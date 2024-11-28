@@ -6,6 +6,9 @@ require "simplecov"
 require "rspec"
 require "simplecov-erb"
 
+REPO = "runwaylab/issue-db"
+FAKE_TOKEN = "fake_token"
+
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 
 SimpleCov.root File.expand_path("..", File.dirname(__FILE__))
@@ -28,6 +31,15 @@ SimpleCov.start do
   add_filter "vendor/gems/"
 end
 
+# Globally capture all sleep calls
+RSpec.configure do |config|
+  config.before(:each) do
+    allow(Kernel).to receive(:sleep)
+    allow_any_instance_of(Kernel).to receive(:sleep)
+    allow_any_instance_of(Object).to receive(:sleep)
+  end
+end
+
 require "vcr"
 require "webmock/rspec"
 
@@ -36,4 +48,5 @@ VCR.configure do |config|
   config.hook_into :webmock
   config.configure_rspec_metadata!
   config.filter_sensitive_data("<GITHUB_TOKEN>") { ENV["GITHUB_TOKEN"] }
+  # config.default_cassette_options = { record: :new_episodes }
 end

@@ -24,4 +24,11 @@ jobs:
         with:
           bundler-cache: true
 
-      # TODO
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: acceptance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENV: acceptance
+        run: script/acceptance

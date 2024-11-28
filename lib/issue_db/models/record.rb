@@ -20,7 +20,12 @@ class Record
       raise IssueParseError, "issue body is empty for issue number #{@source_data.number}"
     end
 
-    parsed = parse(@source_data.body)
+    begin
+      parsed = parse(@source_data.body)
+    rescue JSON::ParserError => e
+      message = "failed to parse issue body data contents for issue number: #{@source_data.number} - #{e.message}"
+      raise IssueParseError, message
+    end
 
     @body_before = parsed[:body_before]
     @data = parsed[:data]

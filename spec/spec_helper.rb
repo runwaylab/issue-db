@@ -7,7 +7,7 @@ require "rspec"
 require "simplecov-erb"
 
 REPO = "runwaylab/issue-db"
-FAKE_TOKEN = ENV["GITHUB_TOKEN"]
+FAKE_TOKEN = "fake_token"
 
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 
@@ -48,5 +48,5 @@ VCR.configure do |config|
   config.hook_into :webmock
   config.configure_rspec_metadata!
   config.filter_sensitive_data("<GITHUB_TOKEN>") { ENV["GITHUB_TOKEN"] }
-  config.default_cassette_options = { record: :new_episodes }
+  # config.default_cassette_options = { record: :new_episodes }
 end

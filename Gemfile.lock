@@ -3,6 +3,7 @@ PATH
   specs:
     issue-db (0.0.2)
       faraday-retry (~> 2.2, >= 2.2.1)
+      jwt (~> 2.9, >= 2.9.3)
       octokit (~> 9.2)
       redacting-logger (~> 1.4)
       retryable (~> 3.0, >= 3.0.5)
@@ -52,6 +53,8 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.8.2)
+    jwt (2.9.3)
+      base64
     language_server-protocol (3.17.0.3)
     logger (1.6.1)
     minitest (5.25.1)

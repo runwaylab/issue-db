@@ -193,7 +193,7 @@ This section will go into detail around how you can configure the `issue-db` gem
 The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have three options for authentication when using the `issue-db` gem:
 
 1. Use a GitHub personal access token by setting the `GITHUB_TOKEN` environment variable
-2. Use a GitHub app by setting the `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PRIVATE_KEY` environment variables
+2. Use a GitHub app by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
 3. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
 
 Here are examples of each of these options:
@@ -209,7 +209,31 @@ db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
 
 ### Using a GitHub App
 
+This is the single best way to use the `issue-db` gem because GitHub Apps have increased rate limits, fine-grained permissions, and are more secure than using a personal access token. All you have to do is provide three environment variables and the `issue-db` gem will take care of the rest:
+
+- `ISSUE_DB_GITHUB_APP_ID`
+- `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`
+- `ISSUE_DB_GITHUB_APP_KEY`
+
+Here is an example of how you can use a GitHub app with the `issue-db` gem:
+
 ```ruby
+# Assuming you have the following three environment variables set:
+
+# 1: ISSUE_DB_GITHUB_APP_ID
+# app ids are found on the App's settings page
+
+# 2: ISSUE_DB_GITHUB_APP_INSTALLATION_ID
+# installation ids look like this:
+# https://github.com/organizations/<org>/settings/installations/<8_digit_id>
+
+# 3. ISSUE_DB_GITHUB_APP_KEY
+# app keys are found on the App's settings page and can be downloaded
+# format: "-----BEGIN...key\n...END-----\n" (this will be one super long string and that's okay)
+# make sure this key in your env is a single line string with newlines as "\n"
+
+# With all three of these environment variables set, you can proceed with ease!
+db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
 ```
 
 ### Using Your Own Authenticated `Octokit.rb` Instance

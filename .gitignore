@@ -9,11 +9,6 @@ vendor/gems
 .local/
 .DS_Store
 .lesshst
-*.pem
-*.key
-*.crt
-*.csr
-*.secret
 
 /.bundle
 /vendor/gems
@@ -35,3 +30,11 @@ coverage/*
 .idea
 
 issue-db-*.gem
+
+!./spec/fixtures/fake_private_key.pem
+
+*.pem
+*.key
+*.crt
+*.csr
+*.secret

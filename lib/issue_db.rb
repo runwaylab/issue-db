@@ -29,7 +29,7 @@ class IssueDB
     @log = log || RedactingLogger.new($stdout, level: ENV.fetch("LOG_LEVEL", "INFO").upcase)
     Retry.setup!(log: @log)
     @version = VERSION
-    @client = Authentication.login(octokit_client)
+    @client = Authentication.login(octokit_client, @log)
     @repo = Repository.new(repo)
     @label = label || ENV.fetch("ISSUE_DB_LABEL", "issue-db")
     @cache_expiry = cache_expiry || ENV.fetch("ISSUE_DB_CACHE_EXPIRY", 60).to_i

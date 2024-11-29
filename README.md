@@ -173,6 +173,58 @@ Example:
 db.refresh!
 ```
 
+## Options 🛠
+
+This section will go into detail around how you can configure the `issue-db` gem to behave:
+
+### Environment Variables 🌍
+
+| Name | Description | Default Value |
+|------|-------------|---------------|
+| `LOG_LEVEL` | The log level to use for the `issue-db` gem. Can be one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `FATAL` | `INFO` |
+| `ISSUE_DB_LABEL` | The label to use for the issues that are used as records in the database. This value is required and it is what this gem uses to scan a repo for the records it is aware of. | `issue-db` |
+| `ISSUE_DB_CACHE_EXPIRY` | The number of seconds to cache the database in memory. The database is cached in memory to avoid making a request to the GitHub API for every operation. The default value is 60 seconds. | `60` |
+| `ISSUE_DB_SLEEP` | The number of seconds to sleep between requests to the GitHub API in the event of an error | `3` |
+| `ISSUE_DB_RETRIES` | The number of retries to make when there is an error making a request to the GitHub API | `10` |
+| `GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
+
+## Authentication 🔒
+
+The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have three options for authentication when using the `issue-db` gem:
+
+1. Use a GitHub personal access token by setting the `GITHUB_TOKEN` environment variable
+2. Use a GitHub app by setting the `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PRIVATE_KEY` environment variables
+3. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
+
+Here are examples of each of these options:
+
+### Using a GitHub Personal Access Token
+
+```ruby
+# Assuming you have a GitHub personal access token set as the GITHUB_TOKEN env var
+require "issue_db"
+
+db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
+```
+
+### Using a GitHub App
+
+```ruby
+```
+
+### Using Your Own Authenticated `Octokit.rb` Instance
+
+```ruby
+require "octokit"
+
+# Create your own authenticated Octokit.rb instance
+# You should probably set the page_size to 100 and auto_paginate to true
+octokit = Octokit::Client.new(access_token: "<TOKEN>", page_size: 100)
+octokit.auto_paginate = true
+
+db = IssueDB.new("<org>/<repo>", octokit_client: octokit)
+```
+
 ## Advanced Example 🚀
 
 Here is a more advanced example of using the `issue-db` gem that demonstrates many different features of the gem:

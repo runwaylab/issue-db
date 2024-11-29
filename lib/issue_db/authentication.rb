@@ -17,8 +17,8 @@ module Authentication
       return GitHubApp.new
     end
 
-    # if the client is nil and no GitHub App env vars were found, check for the GITHUB_TOKEN
-    token = ENV.fetch("GITHUB_TOKEN", nil)
+    # if the client is nil and no GitHub App env vars were found, check for the ISSUE_DB_GITHUB_TOKEN
+    token = ENV.fetch("ISSUE_DB_GITHUB_TOKEN", nil)
     if token
       octokit = Octokit::Client.new(access_token: token, page_size: 100)
       octokit.auto_paginate = true

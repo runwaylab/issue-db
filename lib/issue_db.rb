@@ -41,7 +41,7 @@ class IssueDB
   end
 
   def read(key, options = {})
-    db.read(key)
+    db.read(key, options)
   end
 
   def update(key, data, options = {})

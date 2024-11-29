@@ -192,9 +192,13 @@ This section will go into detail around how you can configure the `issue-db` gem
 
 The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have three options for authentication when using the `issue-db` gem:
 
-1. Use a GitHub personal access token by setting the `ISSUE_DB_GITHUB_TOKEN` environment variable
-2. Use a GitHub app by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
-3. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
+> Note: The order displayed below is also the order of priority that this Gem uses to authenticate.
+
+1. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
+2. Use a GitHub App by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
+3. Use a GitHub personal access token by setting the `ISSUE_DB_GITHUB_TOKEN` environment variable
+
+> Using a GitHub App is the suggested method
 
 Here are examples of each of these options:
 

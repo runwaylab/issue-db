@@ -7,8 +7,9 @@ class IssueParseError < StandardError; end
 class Record
   include Parse
 
-  attr_reader :body_before, :data, :body_after, :source_data
+  attr_reader :body_before, :data, :body_after, :source_data, :key
   def initialize(data)
+    @key = data.title
     @source_data = data
     parse!
   end

@@ -306,3 +306,103 @@ puts records.first.source_data.state # => "closed" (the GitHub issue is closed a
 # Force a refresh of the database cache (useful if you have made changes to the database outside of the gem and don't want to wait for the cache to refresh)
 db.refresh!
 ```
+
+## Embedding Markdown in the Issue Body 📝
+
+With this library, you can write markdown text into the issue body **in addition** to the JSON data. Pretty cool right?
+
+This can be especially useful if you want to add additional context to the data in the issue body for humans to read. For example, you want to open an issue to track the status of an employee who has a laptop that is running an out of date operating system. You might want to do a `db.write()` operation with machine readable data but _also_ include a note for the employee to read. Here is an example of how you can do that:
+
+```ruby
+body_before_text = <<~BODY
+# Out of Date Operating System 🚨
+
+<!--- HUMANS: DO NOT EDIT THIS ISSUE BODY ;) -->
+
+It looks like your laptop is running an out of date operating system. This is a security risk.
+
+Please update your OS as soon as possible.
+
+## Details
+BODY
+
+body_after_text = <<~BODY
+> Thank you for your attention to this matter.
+BODY
+
+options = { body_before: body_before_text, body_after: body_after_text }
+data = { operating_system: "macOS 1.2.3", last_updated_at: "2024-09-30", user: "Celeste", location: "California", out_of_date: true, employee_id: 123 }
+record = db.create("Out of Date OS - EmployeeID: 123", data, options) # this assumes that employee IDs are unique in this example
+```
+
+Running that code snippet will result in a database record (GitHub issue) being created that has the following markdown body:
+
+````markdown
+# Out of Date Operating System 🚨
+
+<!--- HUMANS: DO NOT EDIT THIS ISSUE BODY ;) -->
+
+It looks like your laptop is running an out of date operating system. This is a security risk.
+
+Please update your OS as soon as possible.
+
+## Details
+
+<!--- issue-db-start -->
+```json
+{
+  "operating_system": "macOS 1.2.3",
+  "last_updated_at": "2024-09-30",
+  "user": "Celeste",
+  "location": "California",
+  "out_of_date": true
+}
+```
+<!--- issue-db-end -->
+
+> Thank you for your attention to this matter.
+````
+
+Here is a screenshot of exactly how this issue would render in GitHub:
+
+![example1](./docs/assets/example1.png)
+
+Now the best part about this, is that we can still use the `db.read()` method flawlessly and get the data back in a machine readable format, and we can even get back the markdown text as well! Here is an example of how you can do that:
+
+```ruby
+record = db.read("Out of Date OS - EmployeeID: 123")
+
+puts record.data # => {"operating_system"=>"macOS 1.2.3", "last_updated_at"=>"2024-09-30", "user"=>"Celeste", "location"=>"California", "out_of_date"=>true, "employee_id"=>123}
+puts record.body_before # the markdown text before the data in the issue body (as seen above, not going to repeat it here - its long)
+puts record.body_after # ditto ^
+# puts record.source_data.body # useful for getting the raw markdown text of the issue body as is
+```
+
+Here is a screenshot of the output of the script above:
+
+![example2](./docs/assets/example2.png)
+
+## Record Attributes 📦
+
+Database "items" are called Records in this library. Records are represented by a `IssueDB::Record` object. Records are actually just GitHub issues under the hood!
+
+Records have the following attributes:
+
+- `key` (String) - The unique key for the record. This is the title of the GitHub issue.
+- `data` (Hash) - The data for the record. This can be any valid JSON data type (String, Number, Boolean, Array, Object, or nil).
+- `source_data` (Octokit::Issue) - The GitHub issue object that is the source of the record. This value is returned by Octokit and is a Sawyer::Resource object.
+- `body_before` (String) - The markdown text before the data in the issue body.
+- `body_after` (String) - The markdown text after the data in the issue body.
+
+Example:
+
+```ruby
+record = db.read("order_number_123")
+
+puts record.key # => "order_number_123"
+puts record.data # => { "location"=>"London", "items"=>[ "cookies", "espresso", "chips" ] }
+puts record.data["location"] # => "London"
+puts record.source_data.state # => "open" (the GitHub issue is open so the record is active)
+puts record.body_before # => "some markdown text before the data"
+puts record.body_after # => "some markdown text after the data"
+```

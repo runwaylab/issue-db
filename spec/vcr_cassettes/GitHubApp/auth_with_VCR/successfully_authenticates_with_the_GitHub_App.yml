@@ -1,0 +1,143 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.github.com/app/installations/456/access_tokens
+    body:
+      encoding: UTF-8
+      string: "{}"
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      User-Agent:
+      - Octokit Ruby Gem 9.2.0
+      Content-Type:
+      - application/json
+      Authorization:
+      - "<JWT_TOKEN>"
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 201
+      message: Created
+    headers:
+      Date:
+      - Fri, 29 Nov 2024 04:35:39 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '173'
+      Cache-Control:
+      - public, max-age=60, s-maxage=60
+      Vary:
+      - Accept,Accept-Encoding, Accept, X-Requested-With
+      Etag:
+      - '"373477d3ccb7010072dc51b99fca284042293cfb4e679e6f5367de2ebabcb9ed"'
+      X-Github-Media-Type:
+      - github.v3; format=json
+      X-Github-Api-Version-Selected:
+      - '2022-11-28'
+      Access-Control-Expose-Headers:
+      - ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes,
+        X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO,
+        X-GitHub-Request-Id, Deprecation, Sunset
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - '0'
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      Server:
+      - github.com
+      X-Github-Request-Id:
+      - C8C1:6E61B:3E45927:3F5C193:6749449B
+    body:
+      encoding: UTF-8
+      string: '{"token":"ghs_<redacted>","expires_at":"2024-11-29T05:35:39Z","permissions":{"issues":"write","metadata":"read"},"repository_selection":"selected"}'
+  recorded_at: Fri, 29 Nov 2024 04:35:39 GMT
+- request:
+    method: get
+    uri: https://api.github.com/rate_limit
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      User-Agent:
+      - Octokit Ruby Gem 9.2.0
+      Content-Type:
+      - application/json
+      Authorization:
+      - "<JWT_TOKEN>"
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Fri, 29 Nov 2024 04:35:40 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Cache-Control:
+      - no-cache
+      X-Github-Media-Type:
+      - github.v3; format=json
+      X-Accepted-Github-Permissions:
+      - allows_permissionless_access=true
+      X-Github-Api-Version-Selected:
+      - '2022-11-28'
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '5000'
+      X-Ratelimit-Reset:
+      - '1732858540'
+      X-Ratelimit-Used:
+      - '0'
+      X-Ratelimit-Resource:
+      - core
+      Access-Control-Expose-Headers:
+      - ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes,
+        X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO,
+        X-GitHub-Request-Id, Deprecation, Sunset
+      Access-Control-Allow-Origin:
+      - "*"
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      X-Frame-Options:
+      - deny
+      X-Content-Type-Options:
+      - nosniff
+      X-Xss-Protection:
+      - '0'
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Content-Security-Policy:
+      - default-src 'none'
+      Vary:
+      - Accept-Encoding, Accept, X-Requested-With
+      Transfer-Encoding:
+      - chunked
+      Server:
+      - github.com
+      X-Github-Request-Id:
+      - C8C2:1730D2:13061DDA:134B50AB:6749449B
+    body:
+      encoding: ASCII-8BIT
+      string: '{"resources":{"core":{"limit":5000,"used":0,"remaining":5000,"reset":1732858540},"search":{"limit":30,"used":0,"remaining":30,"reset":1732855000},"graphql":{"limit":5000,"used":0,"remaining":5000,"reset":1732858540},"integration_manifest":{"limit":5000,"used":0,"remaining":5000,"reset":1732858540},"source_import":{"limit":100,"used":0,"remaining":100,"reset":1732855000},"code_scanning_upload":{"limit":1000,"used":0,"remaining":1000,"reset":1732858540},"actions_runner_registration":{"limit":10000,"used":0,"remaining":10000,"reset":1732858540},"scim":{"limit":15000,"used":0,"remaining":15000,"reset":1732858540},"dependency_snapshots":{"limit":100,"used":0,"remaining":100,"reset":1732855000},"audit_log":{"limit":1750,"used":0,"remaining":1750,"reset":1732858540},"audit_log_streaming":{"limit":15,"used":0,"remaining":15,"reset":1732858540},"code_search":{"limit":10,"used":0,"remaining":10,"reset":1732855000}},"rate":{"limit":5000,"used":0,"remaining":5000,"reset":1732858540}}'
+  recorded_at: Fri, 29 Nov 2024 04:35:40 GMT
+recorded_with: VCR 6.3.1

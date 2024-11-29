@@ -99,5 +99,10 @@ describe GitHubApp, :vcr do
       github_app = GitHubApp.new
       expect { github_app.rate_limit }.to raise_error(StandardError, /401 - A JSON web token could not be decoded/)
     end
+
+    it "successfully authenticates with the GitHub App" do
+      github_app = GitHubApp.new
+      expect(github_app.rate_limit.remaining).to eq(5000)
+    end
   end
 end

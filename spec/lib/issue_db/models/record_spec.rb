@@ -7,6 +7,7 @@ describe Record do
   let(:valid_issue) do
     double(
       "issue",
+      title: "event123",
       body: <<~BODY
         This is the body before the data.
         <!--- issue-db-start -->
@@ -23,12 +24,13 @@ describe Record do
   end
 
   let(:empty_body_issue) do
-    double("issue", body: "", number: 1)
+    double("issue", title: "event123", body: "", number: 1)
   end
 
   let(:invalid_json_issue) do
     double(
       "issue",
+      title: "event123",
       body: <<~BODY,
         This is the body before the data.
         <!--- issue-db-start -->
@@ -56,6 +58,7 @@ describe Record do
           "tags" => ["tag1", "tag2"]
         })
         expect(record.body_after).to eq("This is the body after the data.")
+        expect(record.key).to eq("event123")
       end
     end
 

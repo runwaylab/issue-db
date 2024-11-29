@@ -28,6 +28,10 @@ describe IssueDB do
       it "expects the source data to have a number attribute and be a number" do
         expect(record.source_data[:number]).to be_a(Integer)
       end
+
+      it "expects the record to have a key attribute and be a string" do
+        expect(record.key).to be_a(String)
+      end
     end
   end
 

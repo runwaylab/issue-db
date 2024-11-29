@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/github_app"
 
-describe GitHubApp do
+describe GitHubApp, :vcr do
   let(:app_id) { "123" }
   let(:installation_id) { "456" }
   let(:app_key) { File.read("spec/fixtures/fake_private_key.pem") }
@@ -90,6 +90,14 @@ describe GitHubApp do
       allow(github_app).to receive(:client).and_return(client)
       allow(client).to receive(:respond_to?).with(:rate_limit, false).and_return(true)
       expect(github_app.respond_to?(:rate_limit)).to be true
+    end
+  end
+
+  describe "auth with VCR" do
+    it "fails because no env vars are provided at all" do
+      allow(ENV).to receive(:fetch).with("http_proxy", nil).and_return(nil)
+      github_app = GitHubApp.new
+      expect { github_app.rate_limit }.to raise_error(StandardError, /401 - A JSON web token could not be decoded/)
     end
   end
 end

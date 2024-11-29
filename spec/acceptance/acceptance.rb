@@ -33,7 +33,7 @@ describe IssueDB do
 
   context "#read" do
     it "successfully reads an issue and returns a record even though it is closed" do
-      record = db.read("event456")
+      record = db.read("event456", options)
       expect(record).to be_a(Record)
       expect(record.data).to be_a(Hash)
       expect(record.data["cool"]).to eq(true)

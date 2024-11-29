@@ -9,6 +9,8 @@
 
 A Ruby Gem to use GitHub Issues as a NoSQL JSON document db.
 
+![issue-db](./docs/assets/issue-db.png)
+
 ## Quick Start ⚡
 
 The `issue-db` gem uses CRUD operations to read and write data to a GitHub repository using issues as the records. The title of the issue is used as the unique key for the record and the body of the issue is used to store the data in JSON format.

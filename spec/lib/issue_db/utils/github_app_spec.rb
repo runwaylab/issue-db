@@ -15,6 +15,7 @@ describe GitHubApp, :vcr do
     allow(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_ID").and_return(app_id)
     allow(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID").and_return(installation_id)
     allow(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY").and_return(app_key)
+    allow(ENV).to receive(:fetch).with("http_proxy", nil).and_return(nil)
 
     allow(client).to receive(:auto_paginate=).with(true).and_return(true)
     allow(client).to receive(:per_page=).with(100).and_return(100)
@@ -95,7 +96,6 @@ describe GitHubApp, :vcr do
 
   describe "auth with VCR" do
     it "fails because no env vars are provided at all" do
-      allow(ENV).to receive(:fetch).with("http_proxy", nil).and_return(nil)
       github_app = GitHubApp.new
       expect { github_app.rate_limit }.to raise_error(StandardError, /401 - A JSON web token could not be decoded/)
     end

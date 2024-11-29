@@ -87,6 +87,7 @@ describe Database, :vcr do
   context "list" do
     it "lists all records successfully" do
       records = subject.list
+      expect(records.first.data).to eq({"age"=>333, "apple"=>"red", "cool"=>true, "user"=>"mona"})
       expect(records.first.source_data.number).to eq(8)
       expect(records.last.source_data.number).to eq(6)
       expect(records.size).to eq(3)

@@ -25,7 +25,7 @@ describe IssueDB do
 
   context "#read" do
     it "makes a read operation" do
-      expect(database).to receive(:read).with("event123").and_return(record)
+      expect(database).to receive(:read).with("event123", {}).and_return(record)
       record = subject.read("event123")
       expect(record.data["cool"]).to eq(true)
     end

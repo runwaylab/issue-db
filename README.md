@@ -186,22 +186,26 @@ This section will go into detail around how you can configure the `issue-db` gem
 | `ISSUE_DB_CACHE_EXPIRY` | The number of seconds to cache the database in memory. The database is cached in memory to avoid making a request to the GitHub API for every operation. The default value is 60 seconds. | `60` |
 | `ISSUE_DB_SLEEP` | The number of seconds to sleep between requests to the GitHub API in the event of an error | `3` |
 | `ISSUE_DB_RETRIES` | The number of retries to make when there is an error making a request to the GitHub API | `10` |
-| `GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
+| `ISSUE_DB_GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
 
 ## Authentication 🔒
 
 The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have three options for authentication when using the `issue-db` gem:
 
-1. Use a GitHub personal access token by setting the `GITHUB_TOKEN` environment variable
-2. Use a GitHub app by setting the `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PRIVATE_KEY` environment variables
-3. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
+> Note: The order displayed below is also the order of priority that this Gem uses to authenticate.
+
+1. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
+2. Use a GitHub App by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
+3. Use a GitHub personal access token by setting the `ISSUE_DB_GITHUB_TOKEN` environment variable
+
+> Using a GitHub App is the suggested method
 
 Here are examples of each of these options:
 
 ### Using a GitHub Personal Access Token
 
 ```ruby
-# Assuming you have a GitHub personal access token set as the GITHUB_TOKEN env var
+# Assuming you have a GitHub personal access token set as the ISSUE_DB_GITHUB_TOKEN env var
 require "issue_db"
 
 db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
@@ -209,7 +213,31 @@ db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
 
 ### Using a GitHub App
 
+This is the single best way to use the `issue-db` gem because GitHub Apps have increased rate limits, fine-grained permissions, and are more secure than using a personal access token. All you have to do is provide three environment variables and the `issue-db` gem will take care of the rest:
+
+- `ISSUE_DB_GITHUB_APP_ID`
+- `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`
+- `ISSUE_DB_GITHUB_APP_KEY`
+
+Here is an example of how you can use a GitHub app with the `issue-db` gem:
+
 ```ruby
+# Assuming you have the following three environment variables set:
+
+# 1: ISSUE_DB_GITHUB_APP_ID
+# app ids are found on the App's settings page
+
+# 2: ISSUE_DB_GITHUB_APP_INSTALLATION_ID
+# installation ids look like this:
+# https://github.com/organizations/<org>/settings/installations/<8_digit_id>
+
+# 3. ISSUE_DB_GITHUB_APP_KEY
+# app keys are found on the App's settings page and can be downloaded
+# format: "-----BEGIN...key\n...END-----\n" (this will be one super long string and that's okay)
+# make sure this key in your env is a single line string with newlines as "\n"
+
+# With all three of these environment variables set, you can proceed with ease!
+db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
 ```
 
 ### Using Your Own Authenticated `Octokit.rb` Instance
@@ -230,7 +258,7 @@ db = IssueDB.new("<org>/<repo>", octokit_client: octokit)
 Here is a more advanced example of using the `issue-db` gem that demonstrates many different features of the gem:
 
 ```ruby
-# Assuming you have a GitHub personal access token set as the GITHUB_TOKEN env var
+# Assuming you have a GitHub personal access token set as the ISSUE_DB_GITHUB_TOKEN env var
 require "issue_db"
 
 # The GitHub repository to use as the database

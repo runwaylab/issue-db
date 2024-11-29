@@ -16,7 +16,7 @@ class DummyClass
   end
 end
 
-RSpec.describe Init do
+describe Init do
   let(:client) { double("client") }
   let(:repo) { double("repo", full_name: "user/repo") }
   let(:label) { "issue-db" }

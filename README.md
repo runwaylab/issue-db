@@ -161,6 +161,18 @@ options = { include_closed: true }
 records = db.list(options)
 ```
 
+### `db.refresh!`
+
+Force a refresh of the database cache. This will make a request to the GitHub API to get the latest data from the GitHub issues in the repository.
+
+This can be useful if you have made changes to the database outside of the gem and don't want to wait for the cache to refresh. By default, the cache refreshes every 60 seconds. Modified records (such as an `update` operation) will be refreshed automatically into the cache so that subsequent reads will return the updated data. The only time you really need to worry about refreshing the cache is if you have made changes to the database outside of the gem or if there is another service using this gem that is also making changes to the database.
+
+Example:
+
+```ruby
+db.refresh!
+```
+
 ## Advanced Example 🚀
 
 Here is a more advanced example of using the `issue-db` gem that demonstrates many different features of the gem:

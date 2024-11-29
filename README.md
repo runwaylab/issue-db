@@ -367,6 +367,8 @@ Here is a screenshot of exactly how this issue would render in GitHub:
 
 ![example1](./docs/assets/example1.png)
 
+And here is a link to the actual issue in GitHub: [issue link](https://github.com/runwaylab/issue-db/issues/19)
+
 Now the best part about this, is that we can still use the `db.read()` method flawlessly and get the data back in a machine readable format, and we can even get back the markdown text as well! Here is an example of how you can do that:
 
 ```ruby

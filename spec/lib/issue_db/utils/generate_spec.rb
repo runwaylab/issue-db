@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/generate"
 
-RSpec.describe Generate do
+describe Generate do
   include Generate
 
   let(:data) do

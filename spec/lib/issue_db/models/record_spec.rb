@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/models/record"
 
-RSpec.describe Record do
+describe Record do
   let(:valid_issue) do
     double(
       "issue",

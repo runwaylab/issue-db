@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/github_app"
 
-RSpec.describe GitHubApp do
+describe GitHubApp do
   let(:app_id) { "123" }
   let(:installation_id) { "456" }
   let(:app_key) { File.read("spec/fixtures/fake_private_key.pem") }

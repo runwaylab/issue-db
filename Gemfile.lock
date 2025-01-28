@@ -50,13 +50,14 @@ GEM
     i18n (1.14.6)
       concurrent-ruby (~> 1.0)
     io-console (0.8.0)
-    irb (1.14.3)
+    irb (1.15.1)
+      pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.9.1)
     jwt (2.10.1)
       base64
-    language_server-protocol (3.17.0.3)
+    language_server-protocol (3.17.0.4)
     logger (1.6.1)
     minitest (5.25.1)
     net-http (0.4.1)
@@ -68,14 +69,17 @@ GEM
     parser (3.3.7.0)
       ast (~> 2.4.1)
       racc
-    psych (5.2.2)
+    pp (0.6.2)
+      prettyprint
+    prettyprint (0.2.0)
+    psych (5.2.3)
       date
       stringio
     public_suffix (6.0.1)
     racc (1.8.1)
     rack (3.1.8)
     rainbow (3.1.1)
-    rdoc (6.10.0)
+    rdoc (6.11.0)
       psych (>= 4.0.0)
     redacting-logger (1.4.0)
       logger (~> 1.6)
@@ -97,7 +101,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.1)
-    rubocop (1.70.0)
+    rubocop (1.71.0)
       json (~> 2.3)
       language_server-protocol (>= 3.17.0)
       parallel (~> 1.10)
@@ -107,7 +111,7 @@ GEM
       rubocop-ast (>= 1.36.2, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
-    rubocop-ast (1.37.0)
+    rubocop-ast (1.38.0)
       parser (>= 3.3.1.0)
     rubocop-github (0.20.0)
       rubocop (>= 1.37)
@@ -155,10 +159,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  irb (~> 1.14)
+  irb (~> 1.15)
   issue-db!
   rspec (~> 3.13)
-  rubocop (~> 1.70)
+  rubocop (~> 1.71)
   rubocop-github (~> 0.20)
   rubocop-performance (~> 1.23)
   rubocop-rspec (~> 3.4)

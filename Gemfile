@@ -14,5 +14,5 @@ group :development do
   gem "simplecov", "~> 0.22"
   gem "simplecov-erb", "~> 1.0"
   gem "vcr", "~> 6.3", ">= 6.3.1"
-  gem "webmock", "~> 3.24"
+  gem "webmock", "~> 3.25"
 end

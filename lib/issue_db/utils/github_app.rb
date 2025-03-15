@@ -94,7 +94,7 @@ class GitHubApp
   # @param block [Proc] An optional block passed to the method.
   # @return [Object] The result of the method call on the Octokit client.
   def method_missing(method, *args, &block)
-    client.send(method, *args, &block)
+    client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
   end
 
   # This method is called to check if the GitHub class responds to a method.

@@ -14,7 +14,7 @@ describe IssueDB do
     allow(Time).to receive(:now).and_return(current_time)
     allow(Octokit::Client).to receive(:new).and_return(client)
     allow(Database).to receive(:new).and_return(database)
-    allow(record).to receive(:data).and_return({"cool" => true, "number" => 1})
+    allow(record).to receive(:data).and_return({ "cool" => true, "number" => 1 })
   end
 
   subject { described_class.new(REPO, log:, octokit_client: client) }
@@ -33,16 +33,16 @@ describe IssueDB do
 
   context "#create" do
     it "makes a create operation" do
-      expect(database).to receive(:create).with("event123", {"cool" => true, "number" => 1}, {}).and_return(record)
-      record = subject.create("event123", {"cool" => true, "number" => 1})
+      expect(database).to receive(:create).with("event123", { "cool" => true, "number" => 1 }, {}).and_return(record)
+      record = subject.create("event123", { "cool" => true, "number" => 1 })
       expect(record.data["cool"]).to eq(true)
     end
   end
 
   context "#update" do
     it "makes an update operation" do
-      expect(database).to receive(:update).with("event123", {"cool" => true, "number" => 1}, {}).and_return(record)
-      record = subject.update("event123", {"cool" => true, "number" => 1})
+      expect(database).to receive(:update).with("event123", { "cool" => true, "number" => 1 }, {}).and_return(record)
+      record = subject.update("event123", { "cool" => true, "number" => 1 })
       expect(record.data["cool"]).to eq(true)
     end
   end

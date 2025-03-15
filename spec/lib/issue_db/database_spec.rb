@@ -50,12 +50,12 @@ describe Database, :vcr do
 
   context "create" do
     it "fails due to bad credentials" do
-      expect { subject.create("event456", {cool: true}) }.to raise_error(StandardError, /401 - Bad credentials/)
+      expect { subject.create("event456", { cool: true }) }.to raise_error(StandardError, /401 - Bad credentials/)
     end
 
     it "attempts to create a new record and finds that one already exists for the given key" do
       expect(log).to receive(:warn).with(/skipping issue creation/)
-      issue = subject.create("event456", {cool: true})
+      issue = subject.create("event456", { cool: true })
       expect(issue.source_data.number).to eq(8)
       expect(issue.source_data.state).to eq("open")
     end
@@ -63,7 +63,7 @@ describe Database, :vcr do
 
   context "update" do
     it "updates an issue successfully" do
-      issue = subject.update("event999", {cool: false})
+      issue = subject.update("event999", { cool: false })
       expect(issue.source_data.number).to eq(12)
       expect(issue.source_data.state).to eq("open")
     end
@@ -87,7 +87,7 @@ describe Database, :vcr do
   context "list" do
     it "lists all records successfully" do
       records = subject.list
-      expect(records.first.data).to eq({"age"=>333, "apple"=>"red", "cool"=>true, "user"=>"mona"})
+      expect(records.first.data).to eq({ "age" => 333, "apple" => "red", "cool" => true, "user" => "mona" })
       expect(records.first.source_data.number).to eq(8)
       expect(records.last.source_data.number).to eq(6)
       expect(records.size).to eq(3)
@@ -117,7 +117,7 @@ describe Database, :vcr do
       expect(log).to receive(:debug).with(/checking rate limit status for type: core/)
       expect(log).to receive(:debug).with(/rate_limit remaining: 0/)
       expect(log).to receive(:debug).with(/rate_limit not hit - remaining: 1000/)
-      issue = subject.create("event999", {cool: true})
+      issue = subject.create("event999", { cool: true })
       expect(issue.source_data.number).to eq(11)
       expect(issue.source_data.state).to eq("open")
     end

@@ -22,7 +22,7 @@ jobs:
 
       - uses: ruby/setup-ruby@1a615958ad9d422dd932dc1d5823942ee002799f # pin@v1.227.0
         with:
-          bundler-cache: true
+          bundler-cache: false
 
       - name: bootstrap
         run: script/bootstrap

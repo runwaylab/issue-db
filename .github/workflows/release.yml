@@ -8,13 +8,14 @@ on:
     paths:
       - lib/version.rb
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
 
     steps:
       - name: checkout
@@ -42,6 +43,12 @@ jobs:
       - name: build
         run: echo "GEM_VERSION=$(gem build ${{ env.GEM_NAME }}.gemspec 2>&1 | grep Version | cut -d':' -f 2 | tr -d " \t\n\r")" >> $GITHUB_ENV
 
+      - name: upload artifact
+        uses: actions/upload-artifact@4.6.2
+        id: upload-artifact
+        with:
+          path: ${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem
+
       - name: publish to GitHub packages
         run: |
           export OWNER=$( echo ${{ github.repository }} | cut -d "/" -f 1 )
@@ -61,3 +68,22 @@ jobs:
           chmod 0600 ~/.gem/credentials
           gem push ${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem
           rm ~/.gem/credentials
+
+  sign:
+    needs: release
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    uses: runwaylab/salsa/.github/workflows/sign-artifact.yml@main
+    with:
+      artifact-ids: ${{ needs.release.outputs.artifact-id }}
+      artifact-path: "."
+
+  verify:
+    permissions: {}
+    needs: [release, sign]
+    uses: runwaylab/salsa/.github/workflows/verify.yml@main
+    with:
+      artifact-ids: ${{ needs.release.outputs.artifact-id }}
+      artifact-path: "."

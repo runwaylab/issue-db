@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "redacting-logger", "~> 1.4"
   spec.add_dependency "retryable", "~> 3.0", ">= 3.0.5"
-  spec.add_dependency "octokit", "~> 9.2"
+  spec.add_dependency "octokit", ">= 9.2", "< 11.0"
   spec.add_dependency "faraday-retry", "~> 2.2", ">= 2.2.1"
   spec.add_dependency "jwt", "~> 2.9", ">= 2.9.3"
 

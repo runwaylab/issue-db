@@ -31,7 +31,7 @@ describe Authentication do
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil).and_return("456")
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY", nil).and_return("-----KEY-----")
 
-    expect(GitHubApp).to receive(:new).and_return(client)
+    expect(GitHub).to receive(:new).and_return(client)
     expect(Authentication.login).to eq(client)
   end
 

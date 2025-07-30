@@ -7,7 +7,7 @@
 # Why? In some cases, you may not want to have a static long lived token like a GitHub PAT when authenticating...
 # with octokit.rb.
 # Most importantly, this class will handle automatic token refreshing, retries, and rate limiting for you out-of-the-box.
-# Simply provide the correct environment variables, call `GitHubApp.new`, and then use the returned object as you would an Octokit client.
+# Simply provide the correct environment variables, call `GitHub.new`, and then use the returned object as you would an Octokit client.
 
 # Note: Environment variables have the `GH_` prefix because in GitHub Actions, you cannot use `GITHUB_` for secrets
 
@@ -15,7 +15,7 @@ require "octokit"
 require "jwt"
 require "redacting_logger"
 
-class GitHubApp
+class GitHub
   TOKEN_EXPIRATION_TIME = 2700 # 45 minutes
   JWT_EXPIRATION_TIME = 600 # 10 minutes
 

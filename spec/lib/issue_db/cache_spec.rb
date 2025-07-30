@@ -47,7 +47,7 @@ describe Cache do
     end
 
     context "when a secondary rate limit error occurs" do
-      it "raises the error (handled by GitHubApp client)" do
+      it "raises the error (handled by GitHub client)" do
         allow(client).to receive(:search_issues).and_raise(StandardError.new("exceeded a secondary rate limit"))
 
         expect(log).to receive(:debug).with("updating issue cache")

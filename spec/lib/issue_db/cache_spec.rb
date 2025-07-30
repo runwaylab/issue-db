@@ -16,10 +16,6 @@ class DummyClass
     @issues = []
     @issues_last_updated = nil
   end
-
-  def wait_for_rate_limit!(type)
-    # Simulate waiting for rate limit
-  end
 end
 
 describe Cache do
@@ -32,7 +28,6 @@ describe Cache do
 
   before(:each) do
     allow(Time).to receive(:now).and_return(current_time)
-    Retry.setup!(log:)
   end
 
   describe "#update_issue_cache!" do
@@ -52,14 +47,13 @@ describe Cache do
     end
 
     context "when a secondary rate limit error occurs" do
-      it "sleeps and retries" do
+      it "raises the error (handled by GitHubApp client)" do
         allow(client).to receive(:search_issues).and_raise(StandardError.new("exceeded a secondary rate limit"))
-        allow(dummy_instance).to receive(:sleep).with(60)
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(dummy_instance).to receive(:sleep).with(60)
+        expect(log).to receive(:error).with("error search_issues() call: exceeded a secondary rate limit")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, /exceeded a secondary rate limit/)
+        expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: exceeded a secondary rate limit")
       end
     end
 
@@ -68,9 +62,9 @@ describe Cache do
         allow(client).to receive(:search_issues).and_raise(StandardError.new("some other error"))
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(log).to receive(:error).with("error search_issues() call: some other error - ran out of retries")
+        expect(log).to receive(:error).with("error search_issues() call: some other error")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: some other error - ran out of retries")
+        expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: some other error")
       end
     end
   end

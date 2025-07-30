@@ -186,8 +186,9 @@ This section will go into detail around how you can configure the `issue-db` gem
 | `LOG_LEVEL` | The log level to use for the `issue-db` gem. Can be one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `FATAL` | `INFO` |
 | `ISSUE_DB_LABEL` | The label to use for the issues that are used as records in the database. This value is required and it is what this gem uses to scan a repo for the records it is aware of. | `issue-db` |
 | `ISSUE_DB_CACHE_EXPIRY` | The number of seconds to cache the database in memory. The database is cached in memory to avoid making a request to the GitHub API for every operation. The default value is 60 seconds. | `60` |
-| `ISSUE_DB_SLEEP` | The number of seconds to sleep between requests to the GitHub API in the event of an error | `3` |
-| `ISSUE_DB_RETRIES` | The number of retries to make when there is an error making a request to the GitHub API | `10` |
+| `GH_APP_SLEEP` | The number of seconds to sleep between requests to the GitHub API in the event of an error | `3` |
+| `GH_APP_RETRIES` | The number of retries to make when there is an error making a request to the GitHub API | `10` |
+| `GH_APP_ALGO` | The algo to use for your GitHub App if providing a private key | `RS256` |
 | `ISSUE_DB_GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
 
 ## Authentication 🔒

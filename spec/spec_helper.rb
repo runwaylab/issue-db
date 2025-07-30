@@ -8,6 +8,7 @@ require "simplecov-erb"
 
 REPO = "runwaylab/issue-db"
 FAKE_TOKEN = "fake_token"
+TIME_MOCK = "2025-01-01T00:00:00Z"
 
 COV_DIR = File.expand_path("../coverage", File.dirname(__FILE__))
 
@@ -34,6 +35,12 @@ end
 # Globally capture all sleep calls
 RSpec.configure do |config|
   config.before(:each) do
+    fake_time = Time.parse(TIME_MOCK)
+    allow(Time).to receive(:now).and_return(fake_time)
+    allow(Time).to receive(:new).and_return(fake_time)
+    allow(Time).to receive(:iso8601).and_return(fake_time)
+    allow(fake_time).to receive(:utc).and_return(fake_time)
+    allow(fake_time).to receive(:iso8601).and_return(TIME_MOCK)
     allow(Kernel).to receive(:sleep)
     allow_any_instance_of(Kernel).to receive(:sleep)
     allow_any_instance_of(Object).to receive(:sleep)

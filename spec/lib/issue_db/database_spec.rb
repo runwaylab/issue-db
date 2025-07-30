@@ -17,7 +17,6 @@ describe Database, :vcr do
 
   before(:each) do
     allow(Time).to receive(:now).and_return(current_time)
-    Retry.setup!(log:)
   end
 
   subject { described_class.new(log, @client, repo, label, cache_expiry) }
@@ -59,6 +58,32 @@ describe Database, :vcr do
       expect(issue.source_data.number).to eq(8)
       expect(issue.source_data.state).to eq("open")
     end
+
+    it "creates a new record when no existing issues are found" do
+      # Mock the client to return empty array for existing issues
+      search_result = double("search_result", items: [], total_count: 0)
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Create a properly formatted issue body with guards
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the create_issue call
+      new_issue = double("issue", number: 999, state: "open", title: "new_event_key", body: issue_body)
+      allow(@client).to receive(:create_issue).and_return(new_issue)
+
+      expect(log).to receive(:debug).with(/issue created: new_event_key/)
+
+      issue = subject.create("new_event_key", { test: "data" })
+      expect(issue).to be_a(Record)
+    end
   end
 
   context "update" do
@@ -99,27 +124,6 @@ describe Database, :vcr do
       results = subject.refresh!
       expect(results.length).to eq(5)
       expect(results.first.number).to eq(11)
-    end
-  end
-
-  context "rate limits" do
-    it "hits rate limits while trying to read an issue" do
-      expect(log).to receive(:debug).with(/checking rate limit status for type: search/)
-      expect(log).to receive(:debug).with(/rate_limit remaining: 0/)
-      expect(log).to receive(:info).with(/github rate_limit hit/)
-      issue = subject.read("event456")
-      expect(issue.source_data.number).to eq(8)
-      expect(issue.source_data.state).to eq("open")
-      expect(issue.source_data.html_url).to match(/runwaylab\/issue-db\/issues\/8/)
-    end
-
-    it "thinks that rate limits are hit while trying to read an issue but they are not" do
-      expect(log).to receive(:debug).with(/checking rate limit status for type: core/)
-      expect(log).to receive(:debug).with(/rate_limit remaining: 0/)
-      expect(log).to receive(:debug).with(/rate_limit not hit - remaining: 1000/)
-      issue = subject.create("event999", { cool: true })
-      expect(issue.source_data.number).to eq(11)
-      expect(issue.source_data.state).to eq("open")
     end
   end
 end

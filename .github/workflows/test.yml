@@ -30,4 +30,4 @@ jobs:
         run: script/bootstrap
 
       - name: test
-        run: script/test -d -k
+        run: script/test

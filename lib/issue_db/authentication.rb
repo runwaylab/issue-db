@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "octokit"
-require_relative "utils/github_app"
+require_relative "utils/github"
 
 class AuthenticationError < StandardError; end
 
@@ -16,9 +16,12 @@ module Authentication
     # if the client is nil, check for GitHub App env vars first
     # first, check if all three of the following env vars are set and have values
     # ISSUE_DB_GITHUB_APP_ID, ISSUE_DB_GITHUB_APP_INSTALLATION_ID, ISSUE_DB_GITHUB_APP_KEY
-    if ENV.fetch("ISSUE_DB_GITHUB_APP_ID", nil) && ENV.fetch("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil) && ENV.fetch("ISSUE_DB_GITHUB_APP_KEY", nil)
+    app_id = ENV.fetch("ISSUE_DB_GITHUB_APP_ID", nil)
+    installation_id = ENV.fetch("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil)
+    app_key = ENV.fetch("ISSUE_DB_GITHUB_APP_KEY", nil)
+    if app_id && installation_id && app_key
       log.debug("using github app authentication") if log
-      return GitHubApp.new
+      return GitHub.new(log:, app_id:, installation_id:, app_key:)
     end
 
     # if the client is nil and no GitHub App env vars were found, check for the ISSUE_DB_GITHUB_TOKEN

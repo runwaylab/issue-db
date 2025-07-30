@@ -8,14 +8,19 @@ on:
     paths:
       - lib/version.rb
 
+permissions: {}
+
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    if: github.repository == 'runwaylab/issue-db'
     permissions:
-      contents: write
-      packages: write
+      contents: read
+    runs-on: ubuntu-latest
     outputs:
       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
+      gem_name: ${{ steps.build.outputs.gem_name }}
+      gem_version: ${{ steps.build.outputs.gem_version }}
+      gem_path: ${{ steps.build.outputs.gem_path }}
 
     steps:
       - name: checkout
@@ -30,60 +35,122 @@ jobs:
       - name: bootstrap
         run: script/bootstrap
 
-      - name: lint
-        run: bundle exec rubocop -c .rubocop.yml lib/ spec/
-
-      - name: test
-        run: script/test
-
-      - name: set GEM_NAME from gemspec
-        run: echo "GEM_NAME=$(ls | grep gemspec | cut -d. -f1)" >> $GITHUB_ENV
-
-        # builds the gem and saves the version to GITHUB_ENV
+      # IMPORTANT: this step MUST export for the following outputs:
+      # gem_name: the name of the gem - ex: "my-cool-gem"
+      # gem_version: the version of the gem - ex: "1.0.0"
+      # gem_path: the path/filename of the gem - ex: "my-cool-gem-1.0.0.gem"
       - name: build
-        run: echo "GEM_VERSION=$(gem build ${{ env.GEM_NAME }}.gemspec 2>&1 | grep Version | cut -d':' -f 2 | tr -d " \t\n\r")" >> $GITHUB_ENV
+        id: build
+        run: script/build
 
       - name: upload artifact
         uses: actions/upload-artifact@4.6.2
         id: upload-artifact
         with:
-          path: ${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem
+          path: "${{ steps.build.outputs.gem_path }}"
 
-      - name: publish to GitHub packages
-        run: |
-          export OWNER=$( echo ${{ github.repository }} | cut -d "/" -f 1 )
-          GEM_HOST_API_KEY=${{ secrets.GITHUB_TOKEN }} gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} ${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem
-
-      - name: release
-        uses: ncipollo/release-action@bcfe5470707e8832e12347755757cec0eb3c22af # pin@v1.18.0
+  release:
+    needs: build
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@4.2.2
         with:
-          artifacts: "${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem"
-          tag: "v${{ env.GEM_VERSION }}"
-          generateReleaseNotes: true
+          persist-credentials: false
 
-      - name: publish to RubyGems
+      - uses: actions/download-artifact@4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+
+      - name: Publish to GitHub Packages
+        env:
+          OWNER: ${{ github.repository_owner }}
+          GEM_NAME: ${{ needs.build.outputs.gem_name }}
+          GEM_VERSION: ${{ needs.build.outputs.gem_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_PATH: "artifact"
         run: |
-          mkdir -p ~/.gem
-          echo -e "---\n:rubygems_api_key: ${{ secrets.RUBYGEMS_API_KEY }}" > ~/.gem/credentials
-          chmod 0600 ~/.gem/credentials
-          gem push ${{ env.GEM_NAME }}-${{ env.GEM_VERSION }}.gem
-          rm ~/.gem/credentials
+          GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} $ARTIFACT_PATH/${GEM_NAME}-${GEM_VERSION}.gem
+
+      - uses: ruby/setup-ruby@a4f838919020b587bb8dd4493e8881bb113d3be7 # pin@v1.246.0
+        with:
+          bundler-cache: false
+
+      - name: bootstrap
+        run: script/bootstrap
+
+      - name: Configure RubyGems Credentials
+        uses: rubygems/configure-rubygems-credentials@e3f5097339179e0d4c7321ab44209e7e02446746 # pin@main
+
+      - name: sign ruby gem
+        env:
+          GEM_NAME: ${{ needs.build.outputs.gem_name }}
+          GEM_VERSION: ${{ needs.build.outputs.gem_version }}
+          ARTIFACT_PATH: "artifact"
+        run: bundle exec sigstore-cli sign ${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem --bundle ${GEM_NAME}-${GEM_VERSION}.sigstore.json
+
+      - name: Publish to RubyGems
+        env:
+          GEM_NAME: ${{ needs.build.outputs.gem_name }}
+          GEM_VERSION: ${{ needs.build.outputs.gem_version }}
+          ARTIFACT_PATH: "artifact"
+        run: gem push ${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem --attestation ${GEM_NAME}-${GEM_VERSION}.sigstore.json
+
+      - name: await gem
+        env:
+          GEM_NAME: ${{ needs.build.outputs.gem_name }}
+          GEM_VERSION: ${{ needs.build.outputs.gem_version }}
+        run: bundle exec rubygems-await "${GEM_NAME}:${GEM_VERSION}" --timeout 120
+
+      - name: GitHub Release
+        env:
+          GEM_NAME: ${{ needs.build.outputs.gem_name }}
+          GEM_VERSION: ${{ needs.build.outputs.gem_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_PATH: "artifact"
+        run: |
+          gh release create "v${GEM_VERSION}" \
+            "${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem" \
+            "${GEM_NAME}-${GEM_VERSION}.sigstore.json" \
+            --title "v${GEM_VERSION}" \
+            --generate-notes
 
   sign:
-    needs: release
+    needs: [build, release]
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       attestations: write
       contents: read
-    uses: runwaylab/salsa/.github/workflows/sign-artifact.yml@main
-    with:
-      artifact-ids: ${{ needs.release.outputs.artifact-id }}
-      artifact-path: "."
+
+    steps:
+      - uses: actions/download-artifact@4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+
+      - name: attest build provenance
+        uses: actions/attest-build-provenance@2.4.0
+        with:
+          subject-path: "artifact/${{ needs.build.outputs.gem_path }}"
 
   verify:
     permissions: {}
-    needs: [release, sign]
-    uses: runwaylab/salsa/.github/workflows/verify.yml@main
-    with:
-      artifact-ids: ${{ needs.release.outputs.artifact-id }}
-      artifact-path: "."
+    needs: [build, release, sign]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@4.3.0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+
+      - name: verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          ARTIFACT_PATH: "artifact/${{ needs.build.outputs.gem_path }}"
+        run: gh attestation verify "$ARTIFACT_PATH" --repo ${OWNER}/${REPO} --signer-workflow ${OWNER}/${REPO}/.github/workflows/release.yml

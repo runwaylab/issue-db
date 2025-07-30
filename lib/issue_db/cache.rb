@@ -11,20 +11,10 @@ module Cache
 
     search_response = nil
     begin
-      Retryable.with_context(:default) do
-        wait_for_rate_limit!(:search) # specifically wait for the search rate limit as it is much lower
-
-        begin
-          # issues structure: { "total_count": 0, "incomplete_results": false, "items": [<issues>] }
-          search_response = @client.search_issues(query)
-        rescue StandardError => e
-          # re-raise the error but if its a secondary rate limit error, just sleep for minute (oof)
-          sleep(60) if e.message.include?("exceeded a secondary rate limit")
-          raise e
-        end
-      end
+      # issues structure: { "total_count": 0, "incomplete_results": false, "items": [<issues>] }
+      search_response = @client.search_issues(query)
     rescue StandardError => e
-      retry_err_msg = "error search_issues() call: #{e.message} - ran out of retries"
+      retry_err_msg = "error search_issues() call: #{e.message}"
       @log.error(retry_err_msg)
       raise retry_err_msg
     end

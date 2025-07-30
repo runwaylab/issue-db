@@ -20,6 +20,8 @@ describe Authentication do
       .with(access_token: token, page_size: 100)
       .and_return(client)
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_ID", nil).and_return(nil)
+    expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil).and_return(nil)
+    expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY", nil).and_return(nil)
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_TOKEN", nil).and_return(token)
     expect(Authentication.login).to eq(client)
   end
@@ -29,12 +31,14 @@ describe Authentication do
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil).and_return("456")
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY", nil).and_return("-----KEY-----")
 
-    expect(GitHubApp).to receive(:new).and_return(client)
+    expect(GitHub).to receive(:new).and_return(client)
     expect(Authentication.login).to eq(client)
   end
 
   it "raises an authentication error when no auth methods pass for octokit" do
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_ID", nil).and_return(nil)
+    expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil).and_return(nil)
+    expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY", nil).and_return(nil)
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_TOKEN", nil).and_return(nil)
     expect do
       Authentication.login

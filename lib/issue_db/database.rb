@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "cache"
-require_relative "utils/throttle"
 require_relative "models/record"
 require_relative "utils/generate"
 
@@ -9,7 +8,6 @@ class RecordNotFound < StandardError; end
 
 class Database
   include Cache
-  include Throttle
   include Generate
 
   # :param: log [Logger] a logger object to use for logging
@@ -24,7 +22,6 @@ class Database
     @repo = repo
     @label = label
     @cache_expiry = cache_expiry
-    @rate_limit_all = nil
     @issues = nil
     @issues_last_updated = nil
   end
@@ -52,10 +49,7 @@ class Database
     body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
     # if we make it here, no existing issues were found so we can safely create one
-    issue = Retryable.with_context(:default) do
-      wait_for_rate_limit!
-      @client.create_issue(@repo.full_name, key, body, { labels: @label })
-    end
+    issue = @client.create_issue(@repo.full_name, key, body, { labels: @label })
 
     # append the newly created issue to the issues cache
     @issues << issue
@@ -92,10 +86,7 @@ class Database
 
     body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
-    updated_issue = Retryable.with_context(:default) do
-      wait_for_rate_limit!
-      @client.update_issue(@repo.full_name, issue.number, key, body)
-    end
+    updated_issue = @client.update_issue(@repo.full_name, issue.number, key, body)
 
     # update the issue in the cache using the reference we have
     @issues[@issues.index(issue)] = updated_issue
@@ -112,10 +103,7 @@ class Database
     @log.debug("attempting to delete: #{key}")
     issue = find_issue_by_key(key, options)
 
-    deleted_issue = Retryable.with_context(:default) do
-      wait_for_rate_limit!
-      @client.close_issue(@repo.full_name, issue.number)
-    end
+    deleted_issue = @client.close_issue(@repo.full_name, issue.number)
 
     # remove the issue from the cache
     @issues.delete(issue)

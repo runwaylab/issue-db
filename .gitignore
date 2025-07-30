@@ -1,4 +1,3 @@
-.bundle
 bin
 coverage
 logs
@@ -10,7 +9,6 @@ vendor/gems
 .DS_Store
 .lesshst
 
-/.bundle
 /vendor/gems
 
 # Ignore binstubs but do commit the one specific for this code.

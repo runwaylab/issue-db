@@ -16,6 +16,7 @@ require "jwt"
 require "retryable"
 require "redacting_logger"
 
+
 class GitHubApp
   TOKEN_EXPIRATION_TIME = 2700 # 45 minutes
   JWT_EXPIRATION_TIME = 600 # 10 minutes
@@ -119,18 +120,24 @@ class GitHubApp
     ######## Retryable Configuration ########
     # All defaults available here:
     # https://github.com/nfedyashev/retryable/blob/6a04027e61607de559e15e48f281f3ccaa9750e8/lib/retryable/configuration.rb#L22-L33
+
+    # Use a unique context name to avoid conflicts with other parts of the application
+    context_name = "github_app_client_#{object_id}".to_sym
+
     Retryable.configure do |config|
-      config.contexts[:default] = {
+      config.contexts[context_name] = {
         on: [StandardError],
-        sleep: ENV.fetch("GH_APP_SLEEP", 3),
-        tries: ENV.fetch("GH_APP_RETRIES", 10),
+        sleep: ENV.fetch("GH_APP_SLEEP", 3).to_i,
+        tries: ENV.fetch("GH_APP_RETRIES", 10).to_i,
         log_method:
       }
     end
+
+    @retryable_context = context_name
   end
 
   def fetch_rate_limit
-    @rate_limit_all = Retryable.with_context(:default) do
+    @rate_limit_all = Retryable.with_context(@retryable_context) do
       client.get("rate_limit")
     end
   end
@@ -278,7 +285,7 @@ class GitHubApp
     # Handle special case for search_issues which can hit secondary rate limits
     if method.to_s == "search_issues"
       begin
-        Retryable.with_context(:default) do
+        Retryable.with_context(@retryable_context) do
           wait_for_rate_limit!(rate_limit_type)
           client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
         end
@@ -292,7 +299,7 @@ class GitHubApp
       end
     else
       # For all other methods, use standard retry and rate limiting
-      Retryable.with_context(:default) do
+      Retryable.with_context(@retryable_context) do
         wait_for_rate_limit!(rate_limit_type)
         client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
       end

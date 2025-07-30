@@ -75,6 +75,16 @@ GEM
       prettyprint
     prettyprint (0.2.0)
     prism (1.4.0)
+    protobug (0.1.0)
+    protobug_googleapis_field_behavior_protos (0.1.0)
+      protobug (= 0.1.0)
+      protobug_well_known_protos (= 0.1.0)
+    protobug_sigstore_protos (0.1.0)
+      protobug (= 0.1.0)
+      protobug_googleapis_field_behavior_protos (= 0.1.0)
+      protobug_well_known_protos (= 0.1.0)
+    protobug_well_known_protos (0.1.0)
+      protobug (= 0.1.0)
     psych (5.2.6)
       date
       stringio
@@ -137,10 +147,19 @@ GEM
       lint_roller (~> 1.1)
       rubocop (~> 1.72, >= 1.72.1)
     ruby-progressbar (1.13.0)
+    rubygems-await (0.5.4)
+      bundler (>= 2.2)
     sawyer (0.9.2)
       addressable (>= 2.3.5)
       faraday (>= 0.17.3, < 3)
     securerandom (0.4.1)
+    sigstore (0.2.1)
+      net-http
+      protobug_sigstore_protos (~> 0.1.0)
+      uri
+    sigstore-cli (0.2.1)
+      sigstore (= 0.2.1)
+      thor
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
@@ -150,6 +169,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     stringio (3.1.7)
+    thor (1.4.0)
     tsort (0.2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -176,6 +196,8 @@ DEPENDENCIES
   rubocop-github (~> 0.23)
   rubocop-performance (~> 1.25)
   rubocop-rspec (~> 3.6)
+  rubygems-await (~> 0.5.4)
+  sigstore-cli (~> 0.2.1)
   simplecov (~> 0.22)
   simplecov-erb (~> 1.0)
   vcr (~> 6.3, >= 6.3.1)

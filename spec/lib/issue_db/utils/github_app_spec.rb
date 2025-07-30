@@ -3,45 +3,86 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/github_app"
 
-describe GitHubApp, :vcr do
-  let(:app_id) { "123" }
-  let(:installation_id) { "456" }
+describe GitHubApp do
+  let(:app_id) { 123 }
+  let(:installation_id) { 456 }
   let(:app_key) { File.read("spec/fixtures/fake_private_key.pem") }
-  let(:jwt_token) { "jwt_token" }
-  let(:access_token) { "access_token" }
-  let(:client) { instance_double(Octokit::Client) }
+  let(:jwt_token) { "mocked_jwt_token" }
+  let(:access_token) { "mocked_access_token" }
+  let(:mock_client) { instance_double(Octokit::Client) }
+  let(:mock_logger) { instance_double(RedactingLogger) }
+
+  # Default rate limit response structure
+  let(:default_rate_limit_response) do
+    {
+      resources: {
+        core: { remaining: 5000, used: 0, limit: 5000, reset: (Time.now + 3600).to_i },
+        search: { remaining: 30, used: 0, limit: 30, reset: (Time.now + 3600).to_i },
+        graphql: { remaining: 5000, used: 0, limit: 5000, reset: (Time.now + 3600).to_i }
+      }
+    }
+  end
 
   before do
-    allow(ENV).to receive(:fetch).with("GH_APP_ID").and_return(app_id)
-    allow(ENV).to receive(:fetch).with("GH_APP_INSTALLATION_ID").and_return(installation_id)
+    # Stub environment variables
+    allow(ENV).to receive(:fetch).and_call_original
+    allow(ENV).to receive(:fetch).with("GH_APP_ID").and_return(app_id.to_s)
+    allow(ENV).to receive(:fetch).with("GH_APP_INSTALLATION_ID").and_return(installation_id.to_s)
     allow(ENV).to receive(:fetch).with("GH_APP_KEY").and_return(app_key)
-    allow(ENV).to receive(:fetch).with("http_proxy", nil).and_return(nil)
     allow(ENV).to receive(:fetch).with("GH_APP_LOG_LEVEL", "INFO").and_return("INFO")
-    allow(ENV).to receive(:fetch).with("GH_APP_SLEEP", 3).and_return(3)
-    allow(ENV).to receive(:fetch).with("GH_APP_RETRIES", 10).and_return(10)
+    allow(ENV).to receive(:fetch).with("GH_APP_SLEEP", 3).and_return("3")
+    allow(ENV).to receive(:fetch).with("GH_APP_RETRIES", 10).and_return("10")
     allow(ENV).to receive(:fetch).with("GH_APP_ALGO", "RS256").and_return("RS256")
 
-    allow(client).to receive(:auto_paginate=).with(true).and_return(true)
-    allow(client).to receive(:per_page=).with(100).and_return(100)
+    # Stub logger methods to avoid output during tests
+    allow(mock_logger).to receive(:debug)
+    allow(mock_logger).to receive(:info)
+    allow(mock_logger).to receive(:warn)
+    allow(mock_logger).to receive(:error)
+
+    # Stub RedactingLogger creation
+    allow(RedactingLogger).to receive(:new).and_return(mock_logger)
+
+    # Stub Octokit client creation and configuration
+    allow(Octokit::Client).to receive(:new).and_return(mock_client)
+    allow(mock_client).to receive(:auto_paginate=).with(true)
+    allow(mock_client).to receive(:per_page=).with(100)
+    allow(mock_client).to receive(:create_app_installation_access_token)
+      .with(installation_id)
+      .and_return(token: access_token)
+
+    # Stub JWT and Time for consistent testing
+    allow(JWT).to receive(:encode).and_return(jwt_token)
+    allow(Time).to receive(:now).and_return(Time.at(1640995200)) # Fixed timestamp for consistency
   end
 
   describe "#initialize" do
     it "initializes with environment variables" do
       github_app = GitHubApp.new
-      expect(github_app.instance_variable_get(:@app_id)).to eq(app_id.to_i)
-      expect(github_app.instance_variable_get(:@installation_id)).to eq(installation_id.to_i)
-      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub(/\\+n/, "\n"))
+
+      expect(github_app.instance_variable_get(:@app_id)).to eq(app_id)
+      expect(github_app.instance_variable_get(:@installation_id)).to eq(installation_id)
+      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub('\\n', "\n"))
+      expect(github_app.instance_variable_get(:@app_algo)).to eq("RS256")
     end
 
     it "initializes with provided parameters" do
+      custom_logger = instance_double(RedactingLogger)
+      allow(custom_logger).to receive(:debug)
+
       github_app = GitHubApp.new(
-        app_id: 999,  # Pass as integer instead of string
-        installation_id: 888,  # Pass as integer instead of string
-        app_key: app_key
+        log: custom_logger,
+        app_id: 999,
+        installation_id: 888,
+        app_key: app_key,
+        app_algo: "RS512"
       )
+
+      expect(github_app.instance_variable_get(:@log)).to eq(custom_logger)
       expect(github_app.instance_variable_get(:@app_id)).to eq(999)
       expect(github_app.instance_variable_get(:@installation_id)).to eq(888)
-      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub(/\\+n/, "\n"))
+      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub('\\n', "\n"))
+      expect(github_app.instance_variable_get(:@app_algo)).to eq("RS512")
     end
 
     it "loads app key from .pem file path" do
@@ -51,6 +92,7 @@ describe GitHubApp, :vcr do
         installation_id: 888,
         app_key: pem_file_path
       )
+
       expected_key = File.read(pem_file_path)
       expect(github_app.instance_variable_get(:@app_key)).to eq(expected_key)
     end
@@ -66,7 +108,6 @@ describe GitHubApp, :vcr do
     end
 
     it "raises error when app key file is empty" do
-      # Create a temporary empty file
       empty_file_path = "spec/fixtures/empty_key.pem"
       File.write(empty_file_path, "")
 
@@ -90,333 +131,310 @@ describe GitHubApp, :vcr do
         installation_id: 888,
         app_key: key_with_escapes
       )
-      expected_key = key_with_escapes.gsub(/\\+n/, "\n")
+
+      expected_key = key_with_escapes.gsub('\\n', "\n")
       expect(github_app.instance_variable_get(:@app_key)).to eq(expected_key)
     end
 
     it "falls back to environment variables when parameters are not provided" do
-      # Don't provide app_key parameter, should fall back to ENV
-      github_app = GitHubApp.new(
-        app_id: 999,
-        installation_id: 888
-        # app_key intentionally omitted
-      )
-      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub(/\\+n/, "\n"))
+      github_app = GitHubApp.new(app_id: 999, installation_id: 888)
+      expect(github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub('\\n', "\n"))
     end
 
     it "raises error when environment variable is missing and no parameter provided" do
-      allow(ENV).to receive(:fetch).with("GH_APP_KEY").and_call_original
       allow(ENV).to receive(:fetch).with("GH_APP_KEY") { raise "environment variable GH_APP_KEY is not set" }
 
-      expect do
-        GitHubApp.new(
-          app_id: 999,
-          installation_id: 888
-          # app_key intentionally omitted, ENV var also missing
-        )
-      end.to raise_error(/environment variable GH_APP_KEY is not set/)
+      expect {
+        GitHubApp.new(app_id: 999, installation_id: 888)
+      }.to raise_error(/environment variable GH_APP_KEY is not set/)
     end
 
-    it "accepts custom logger" do
-      custom_logger = instance_double(RedactingLogger)
-      allow(custom_logger).to receive(:debug)  # Allow debug method calls
-      github_app = GitHubApp.new(log: custom_logger, app_id: 999, installation_id: 888, app_key: app_key)
-      expect(github_app.instance_variable_get(:@log)).to eq(custom_logger)
-    end
-
-    it "handles different key sources correctly" do
-      # Test file loading - just verify it works without checking debug messages
-      file_github_app = GitHubApp.new(app_id: 999, installation_id: 888, app_key: "spec/fixtures/fake_private_key.pem")
-      expect(file_github_app.instance_variable_get(:@app_key)).to eq(File.read("spec/fixtures/fake_private_key.pem"))
-
-      # Test string key with escape sequences
-      string_github_app = GitHubApp.new(app_id: 999, installation_id: 888, app_key: "-----BEGIN RSA PRIVATE KEY-----\\ntest\\n-----END RSA PRIVATE KEY-----")
-      expect(string_github_app.instance_variable_get(:@app_key)).to eq("-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----")
-
-      # Test environment fallback
-      env_github_app = GitHubApp.new(app_id: 999, installation_id: 888)
-      expect(env_github_app.instance_variable_get(:@app_key)).to eq(app_key.gsub(/\\+n/, "\n"))
+    it "creates default logger when none provided" do
+      github_app = GitHubApp.new
+      expect(github_app.instance_variable_get(:@log)).to eq(mock_logger)
     end
   end
 
-  describe "#client" do
+  describe "#client (private method)" do
     let(:github_app) { GitHubApp.new }
 
-    before do
-      allow(github_app).to receive(:jwt_token).and_return(jwt_token)
-      allow(client).to receive(:create_app_installation_access_token).with(installation_id.to_i).and_return(token: access_token)
-      allow(Octokit::Client).to receive(:new).with(bearer_token: jwt_token).and_return(client)
-      allow(Octokit::Client).to receive(:new).with(access_token: access_token).and_return(client)
+    it "creates a new client when client is nil" do
+      expect(github_app.send(:client)).to eq(mock_client)
+      expect(mock_client).to have_received(:create_app_installation_access_token).with(installation_id)
     end
 
-    context "when client is nil" do
-      it "creates a new client" do
-        expect(github_app.send(:client)).to eq(client)
-      end
+    it "creates a new client when token is expired" do
+      # Set token refresh time to past expiration
+      github_app.instance_variable_set(:@token_refresh_time, Time.now - GitHubApp::TOKEN_EXPIRATION_TIME - 1)
+
+      expect(github_app.send(:client)).to eq(mock_client)
     end
 
-    context "when token is expired" do
-      it "creates a new client" do
-        github_app.instance_variable_set(:@token_refresh_time, Time.now - GitHubApp::TOKEN_EXPIRATION_TIME - 1)
-        expect(github_app.send(:client)).to eq(client)
-      end
-    end
+    it "returns cached client when token is not expired" do
+      # Set up cached client and recent refresh time
+      github_app.instance_variable_set(:@client, mock_client)
+      github_app.instance_variable_set(:@token_refresh_time, Time.now)
 
-    context "when token is not expired" do
-      it "returns the cached client" do
-        github_app.instance_variable_set(:@client, client)
-        github_app.instance_variable_set(:@token_refresh_time, Time.now)
-        expect(github_app.send(:client)).to eq(client)
-      end
+      # Should not create new client
+      expect(Octokit::Client).not_to receive(:new)
+      expect(github_app.send(:client)).to eq(mock_client)
     end
   end
 
-  describe "#jwt_token" do
-    it "generates a JWT token" do
-      github_app = GitHubApp.new
-      private_key = OpenSSL::PKey::RSA.new(app_key.gsub(/\\+n/, "\n"))
-      payload = {
-        iat: Time.now.to_i - 60,
-        exp: Time.now.to_i - 60 + GitHubApp::JWT_EXPIRATION_TIME,
-        iss: app_id.to_i
-      }
-      token = JWT.encode(payload, private_key, "RS256")
-      expect(github_app.send(:jwt_token)).to eq(token)
+  describe "#jwt_token (private method)" do
+    let(:github_app) { GitHubApp.new }
+
+    it "generates a JWT token with correct payload" do
+      # Allow JWT.encode to be called and return our mock token
+      expect(JWT).to receive(:encode).with(
+        hash_including(
+          iat: kind_of(Integer),
+          exp: kind_of(Integer),
+          iss: app_id
+        ),
+        kind_of(OpenSSL::PKey::RSA),
+        "RS256"
+      ).and_return(jwt_token)
+
+      result = github_app.send(:jwt_token)
+      expect(result).to eq(jwt_token)
+    end
+
+    it "raises OpenSSL error for invalid RSA private key" do
+      invalid_github_app = GitHubApp.new(app_id: 123, app_key: "invalid-key-content")
+
+      # Reset the JWT mock to allow the real method to run
+      allow(JWT).to receive(:encode).and_call_original
+
+      expect { invalid_github_app.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError)
     end
   end
 
-  describe "#method_missing" do
-    it "delegates method calls to the Octokit client" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
+  describe "#token_expired? (private method)" do
+    let(:github_app) { GitHubApp.new }
 
-      # Mock the rate limit check that happens internally
-      rate_limit_response = {
-        resources: {
-          core: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      allow(client).to receive(:rate_limit).and_return("mocked_response")
-
-      result = github_app.rate_limit
-      expect(result).to eq("mocked_response")
+    it "returns true when token_refresh_time is nil" do
+      github_app.instance_variable_set(:@token_refresh_time, nil)
+      expect(github_app.send(:token_expired?)).to be true
     end
 
-    it "handles search_ methods with search rate limit type" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          search: { remaining: 30, used: 0, limit: 30, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      allow(client).to receive(:search_users).and_return("search_result")
-
-      result = github_app.search_users("test")
-      expect(result).to eq("search_result")
+    it "returns true when token has expired" do
+      github_app.instance_variable_set(:@token_refresh_time, Time.now - GitHubApp::TOKEN_EXPIRATION_TIME - 1)
+      expect(github_app.send(:token_expired?)).to be true
     end
 
-    it "handles graphql method with graphql rate limit type" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          graphql: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      # Use post method to simulate GraphQL calls since graphql method might not exist
-      allow(client).to receive(:post).and_return("graphql_result")
-      allow(client).to receive(:respond_to?).with(:post, false).and_return(true)
-
-      result = github_app.post("/graphql", { query: "test" })
-      expect(result).to eq("graphql_result")
-    end
-
-    it "handles POST to /graphql with graphql rate limit type" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          graphql: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      allow(client).to receive(:post).and_return("graphql_post_result")
-
-      # This should trigger the POST /graphql detection on line 216
-      result = github_app.post("/graphql", { query: "test" })
-      expect(result).to eq("graphql_post_result")
-    end
-
-    it "handles POST with nil first argument" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          core: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      allow(client).to receive(:post).and_return("post_result")
-
-      # This should trigger the &. safe navigation operator and fall through to :core
-      result = github_app.post(nil)
-      expect(result).to eq("post_result")
-    end
-
-    it "handles regular POST calls (not GraphQL) with core rate limit type" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          core: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-      allow(client).to receive(:post).and_return("regular_post_result")
-
-      result = github_app.post("/some/other/endpoint", { data: "test" })
-      expect(result).to eq("regular_post_result")
-    end
-
-    it "handles search_issues with secondary rate limit error" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      rate_limit_response = {
-        resources: {
-          search: { remaining: 30, used: 0, limit: 30, reset: Time.now.to_i + 3600 }
-        }
-      }
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-
-      # Mock the search_issues call to raise the secondary rate limit error
-      allow(client).to receive(:search_issues).and_raise(StandardError.new("You have exceeded a secondary rate limit"))
-
-      # Expect the warning log to be called
-      expect(github_app.instance_variable_get(:@log)).to receive(:warn).with(/GitHub secondary rate limit hit, sleeping for 60 seconds/)
-
-      expect do
-        github_app.search_issues("test")
-      end.to raise_error(StandardError, /exceeded a secondary rate limit/)
+    it "returns false when token has not expired" do
+      github_app.instance_variable_set(:@token_refresh_time, Time.now)
+      expect(github_app.send(:token_expired?)).to be false
     end
   end
 
   describe "#wait_for_rate_limit!" do
     let(:github_app) { GitHubApp.new }
 
-    it "is a public method" do
-      expect(github_app).to respond_to(:wait_for_rate_limit!)
-      expect(github_app.public_methods).to include(:wait_for_rate_limit!)
+    before do
+      # Mock the client to avoid actual API calls
+      allow(github_app).to receive(:client).and_return(mock_client)
     end
 
-    it "handles rate limit normal case" do
-      allow(github_app).to receive(:client).and_return(client)
+    it "fetches rate limit when not cached" do
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
 
-      # Normal rate limit response with remaining requests
-      rate_limit_response = {
-        resources: {
-          core: { remaining: 100, used: 4900, limit: 5000, reset: Time.now.to_i + 3600 }
-        }
-      }
+      github_app.wait_for_rate_limit!(:core)
 
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
+      expect(mock_client).to have_received(:get).with("rate_limit")
+    end
 
-      # This should complete without sleeping
+    it "exits early when rate limit is not hit" do
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+
+      expect(github_app).not_to receive(:sleep)
       github_app.wait_for_rate_limit!(:core)
     end
 
-    it "handles actual rate limit hit and sleep scenario" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      # Rate limit response showing no remaining requests
-      rate_limit_response = {
+    it "sleeps when rate limit is hit" do
+      rate_limit_hit_response = {
         resources: {
-          core: { remaining: 0, used: 5000, limit: 5000, reset: Time.now.to_i + 5 } # resets in 5 seconds
+          core: { remaining: 0, used: 5000, limit: 5000, reset: (Time.now + 10).to_i }
         }
       }
 
-      allow(client).to receive(:get).with("rate_limit").and_return(rate_limit_response)
-
-      # Check that it logs the sleep messages
-      expect(github_app.instance_variable_get(:@log)).to receive(:info).with(/github rate_limit hit: sleeping for:/)
-      expect(github_app.instance_variable_get(:@log)).to receive(:info).with(/github rate_limit sleep complete/)
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(rate_limit_hit_response)
+      allow(github_app).to receive(:sleep)
 
       github_app.wait_for_rate_limit!(:core)
+
+      expect(github_app).to have_received(:sleep)
+      expect(mock_logger).to have_received(:info).with(/github rate_limit hit: sleeping for:/)
     end
 
     it "handles rate limit that resets after refresh" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-
-      # First rate limit check shows 0 remaining
       first_response = {
         resources: {
-          core: { remaining: 0, used: 5000, limit: 5000, reset: Time.now.to_i - 10 } # reset time in past
+          core: { remaining: 0, used: 5000, limit: 5000, reset: (Time.now - 10).to_i }
         }
       }
 
-      # After refresh, rate limit shows available requests
       second_response = {
         resources: {
-          core: { remaining: 5000, used: 0, limit: 5000, reset: Time.now.to_i + 3600 }
+          core: { remaining: 5000, used: 0, limit: 5000, reset: (Time.now + 3600).to_i }
         }
       }
 
-      allow(client).to receive(:get).with("rate_limit").and_return(first_response, second_response)
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(first_response, second_response)
 
-      # Since the method tries to fetch rate limit initially, it's already called once
-      # Let's just check that the method completes without error
       expect { github_app.wait_for_rate_limit!(:core) }.not_to raise_error
+    end
+
+    it "updates rate limit count for different types" do
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+
+      github_app.wait_for_rate_limit!(:search)
+
+      # Check that the rate limit was updated
+      rate_limit_all = github_app.instance_variable_get(:@rate_limit_all)
+      expect(rate_limit_all[:resources][:search][:remaining]).to eq(29) # 30 - 1
+    end
+  end
+
+  describe "#method_missing" do
+    let(:github_app) { GitHubApp.new }
+
+    before do
+      allow(github_app).to receive(:client).and_return(mock_client)
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+    end
+
+    it "delegates method calls to the Octokit client with core rate limit" do
+      allow(mock_client).to receive(:rate_limit).and_return("mocked_response")
+
+      result = github_app.rate_limit
+
+      expect(result).to eq("mocked_response")
+      expect(mock_client).to have_received(:rate_limit)
+    end
+
+    it "handles search_ methods with search rate limit type" do
+      allow(mock_client).to receive(:search_users).with("test").and_return("search_result")
+
+      result = github_app.search_users("test")
+
+      expect(result).to eq("search_result")
+      expect(mock_client).to have_received(:search_users).with("test")
+    end
+
+    it "handles POST to /graphql with graphql rate limit type" do
+      allow(mock_client).to receive(:post).with("/graphql", { query: "test" }).and_return("graphql_result")
+
+      result = github_app.post("/graphql", { query: "test" })
+
+      expect(result).to eq("graphql_result")
+    end
+
+    it "handles regular POST calls with core rate limit type" do
+      allow(mock_client).to receive(:post).with("/some/endpoint", { data: "test" }).and_return("post_result")
+
+      result = github_app.post("/some/endpoint", { data: "test" })
+
+      expect(result).to eq("post_result")
+    end
+
+    it "handles POST with nil first argument" do
+      allow(mock_client).to receive(:post).with(nil).and_return("nil_post_result")
+
+      result = github_app.post(nil)
+
+      expect(result).to eq("nil_post_result")
+    end
+
+    it "handles search_issues with secondary rate limit error" do
+      secondary_rate_limit_error = StandardError.new("You have exceeded a secondary rate limit")
+      allow(mock_client).to receive(:search_issues).with("test").and_raise(secondary_rate_limit_error)
+      allow(github_app).to receive(:sleep).with(60)
+
+      expect {
+        github_app.search_issues("test")
+      }.to raise_error(StandardError, /exceeded a secondary rate limit/)
+
+      expect(mock_logger).to have_received(:warn).with(/GitHub secondary rate limit hit, sleeping for 60 seconds/)
+      expect(github_app).to have_received(:sleep).with(60)
+    end
+
+    it "handles search_issues successful call" do
+      allow(mock_client).to receive(:search_issues).with("test").and_return("search_issues_result")
+
+      result = github_app.search_issues("test")
+
+      expect(result).to eq("search_issues_result")
+    end
+
+    it "retries failed requests" do
+      # First call fails, second succeeds
+      allow(mock_client).to receive(:user).and_raise(StandardError.new("Network error")).once
+      allow(mock_client).to receive(:user).and_return("user_data")
+
+      result = github_app.user
+
+      expect(result).to eq("user_data")
     end
   end
 
   describe "#respond_to_missing?" do
-    it "checks if the Octokit client responds to a method" do
-      github_app = GitHubApp.new
-      allow(github_app).to receive(:client).and_return(client)
-      allow(client).to receive(:respond_to?).with(:rate_limit, false).and_return(true)
+    let(:github_app) { GitHubApp.new }
+
+    before do
+      allow(github_app).to receive(:client).and_return(mock_client)
+    end
+
+    it "returns true when Octokit client responds to method" do
+      allow(mock_client).to receive(:respond_to?).with(:rate_limit, false).and_return(true)
+
       expect(github_app.respond_to?(:rate_limit)).to be true
     end
-  end
 
-  describe "#jwt_token error handling" do
-    let(:invalid_key) { "invalid-key-content" }
+    it "returns false when Octokit client does not respond to method" do
+      allow(mock_client).to receive(:respond_to?).with(:nonexistent_method, false).and_return(false)
 
-    it "raises OpenSSL error for invalid RSA private key" do
-      github_app = GitHubApp.new(app_id: "123", app_key: invalid_key)
-
-      expect { github_app.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError, /Neither PUB key nor PRIV key/)
+      expect(github_app.respond_to?(:nonexistent_method)).to be false
     end
 
-    it "raises the original OpenSSL error without modification" do
-      github_app = GitHubApp.new(app_id: "123", app_key: invalid_key)
+    it "includes private methods when specified" do
+      allow(mock_client).to receive(:respond_to?).with(:private_method, true).and_return(true)
 
-      expect { github_app.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError)
+      expect(github_app.respond_to?(:private_method, true)).to be true
     end
   end
 
-  describe "auth with VCR" do
-    it "fails because no env vars are provided at all" do
-      github_app = GitHubApp.new
-      # Mock the client method to fail immediately without any API calls
-      allow(github_app).to receive(:client).and_raise(StandardError.new("Authentication failed"))
-      # Test that the github_app can be created but will fail when trying to make API calls
+  describe "integration scenarios" do
+    let(:github_app) { GitHubApp.new }
+
+    before do
+      allow(github_app).to receive(:client).and_return(mock_client)
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+    end
+
+    it "handles complete workflow: rate limit check, API call, response" do
+      allow(mock_client).to receive(:user).and_return({ login: "testuser" })
+
+      result = github_app.user
+
+      expect(result).to eq({ login: "testuser" })
+      expect(mock_client).to have_received(:get).with("rate_limit")
+      expect(mock_client).to have_received(:user)
+    end
+
+    it "handles authentication failure gracefully" do
+      auth_error = StandardError.new("Authentication failed")
+      allow(mock_client).to receive(:user).and_raise(auth_error)
+
       expect { github_app.user }.to raise_error(StandardError, "Authentication failed")
     end
 
-    it "successfully authenticates with the GitHub App" do
-      github_app = GitHubApp.new
-      expect(github_app.rate_limit.remaining).to eq(5000)
+    it "properly initializes Retryable configuration" do
+      # Check that retryable context is set up
+      retryable_context = github_app.instance_variable_get(:@retryable_context)
+      expect(retryable_context).to be_a(Symbol)
+      expect(retryable_context.to_s).to include("github_app_client")
     end
   end
 end

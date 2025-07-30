@@ -13,7 +13,6 @@
 
 require "octokit"
 require "jwt"
-require "retryable"
 require "redacting_logger"
 
 
@@ -42,7 +41,7 @@ class GitHubApp
     @token_refresh_time = nil
     @rate_limit_all = nil
 
-    setup_retryable!
+    setup_retry_config!
   end
 
   # A helper method to check the client's current rate limit status before making a request
@@ -108,36 +107,50 @@ class GitHubApp
     RedactingLogger.new($stdout, level: ENV.fetch("GH_APP_LOG_LEVEL", "INFO").upcase)
   end
 
-  # Sets up the Retryable gem with custom contexts and passes through a few options
+  # Sets up retry configuration for handling API errors
   # Should the number of retries be reached without success, the last exception will be raised
-  def setup_retryable!
-    log_method = lambda do |retries, exception|
-      # :nocov:
-      @log.debug("[retry ##{retries}] #{exception.class}: #{exception.message} - #{exception.backtrace.join("\n")}")
-      # :nocov:
+  def setup_retry_config!
+    @retry_sleep = ENV.fetch("GH_APP_SLEEP", 3).to_i
+    @retry_tries = ENV.fetch("GH_APP_RETRIES", 10).to_i
+    @retry_exponential_backoff = ENV.fetch("GH_APP_EXPONENTIAL_BACKOFF", "false").downcase == "true"
+  end
+
+  # Custom retry logic with optional exponential backoff and logging
+  # @param retries [Integer] Number of retries to attempt
+  # @param sleep_time [Integer] Base sleep time between retries
+  # @param block [Proc] The block to execute with retry logic
+  # @return [Object] The result of the block execution
+  # When exponential backoff is enabled (default is disabled):
+  # 1st retry: 3 seconds
+  # 2nd retry: 6 seconds
+  # 3rd retry: 12 seconds
+  # 4th retry: 24 seconds
+  # When exponential backoff is disabled:
+  # All retries: 3 seconds (fixed rate)
+  def retry_request(retries: @retry_tries, sleep_time: @retry_sleep, &block)
+    attempt = 0
+    begin
+      attempt += 1
+      yield
+    rescue StandardError => e
+      if attempt < retries
+        if @retry_exponential_backoff
+          backoff_time = sleep_time * (2**(attempt - 1)) # Exponential backoff
+        else
+          backoff_time = sleep_time # Fixed rate
+        end
+        @log.debug("[retry ##{attempt}] #{e.class}: #{e.message} - sleeping #{backoff_time}s before retry")
+        sleep(backoff_time)
+        retry
+      else
+        @log.debug("[retry ##{attempt}] #{e.class}: #{e.message} - max retries exceeded")
+        raise e
+      end
     end
-
-    ######## Retryable Configuration ########
-    # All defaults available here:
-    # https://github.com/nfedyashev/retryable/blob/6a04027e61607de559e15e48f281f3ccaa9750e8/lib/retryable/configuration.rb#L22-L33
-
-    # Use a unique context name to avoid conflicts with other parts of the application
-    context_name = "github_app_client_#{object_id}".to_sym
-
-    Retryable.configure do |config|
-      config.contexts[context_name] = {
-        on: [StandardError],
-        sleep: ENV.fetch("GH_APP_SLEEP", 3).to_i,
-        tries: ENV.fetch("GH_APP_RETRIES", 10).to_i,
-        log_method:
-      }
-    end
-
-    @retryable_context = context_name
   end
 
   def fetch_rate_limit
-    @rate_limit_all = Retryable.with_context(@retryable_context) do
+    @rate_limit_all = retry_request do
       client.get("rate_limit")
     end
   end
@@ -285,7 +298,7 @@ class GitHubApp
     # Handle special case for search_issues which can hit secondary rate limits
     if method.to_s == "search_issues"
       begin
-        Retryable.with_context(@retryable_context) do
+        retry_request do
           wait_for_rate_limit!(rate_limit_type)
           client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
         end
@@ -299,7 +312,7 @@ class GitHubApp
       end
     else
       # For all other methods, use standard retry and rate limiting
-      Retryable.with_context(@retryable_context) do
+      retry_request do
         wait_for_rate_limit!(rate_limit_type)
         client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
       end

@@ -188,6 +188,7 @@ This section will go into detail around how you can configure the `issue-db` gem
 | `ISSUE_DB_CACHE_EXPIRY` | The number of seconds to cache the database in memory. The database is cached in memory to avoid making a request to the GitHub API for every operation. The default value is 60 seconds. | `60` |
 | `GH_APP_SLEEP` | The number of seconds to sleep between requests to the GitHub API in the event of an error | `3` |
 | `GH_APP_RETRIES` | The number of retries to make when there is an error making a request to the GitHub API | `10` |
+| `GH_APP_EXPONENTIAL_BACKOFF` | Whether to use exponential backoff for retries. When `true`, sleep time doubles with each retry. When `false`, uses fixed sleep time. | `false` |
 | `GH_APP_ALGO` | The algo to use for your GitHub App if providing a private key | `RS256` |
 | `ISSUE_DB_GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
 

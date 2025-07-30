@@ -32,6 +32,7 @@ describe GitHubApp do
     allow(ENV).to receive(:fetch).with("GH_APP_LOG_LEVEL", "INFO").and_return("INFO")
     allow(ENV).to receive(:fetch).with("GH_APP_SLEEP", 3).and_return("3")
     allow(ENV).to receive(:fetch).with("GH_APP_RETRIES", 10).and_return("10")
+    allow(ENV).to receive(:fetch).with("GH_APP_EXPONENTIAL_BACKOFF", "false").and_return("false")
     allow(ENV).to receive(:fetch).with("GH_APP_ALGO", "RS256").and_return("RS256")
 
     # Stub logger methods to avoid output during tests
@@ -351,6 +352,8 @@ describe GitHubApp do
       secondary_rate_limit_error = StandardError.new("You have exceeded a secondary rate limit")
       allow(mock_client).to receive(:search_issues).with("test").and_raise(secondary_rate_limit_error)
       allow(github_app).to receive(:sleep).with(60)
+      # Mock the retry mechanism's sleep as well to prevent actual retries during test
+      allow(github_app).to receive(:sleep).with(anything)
 
       expect {
         github_app.search_issues("test")
@@ -376,6 +379,61 @@ describe GitHubApp do
       result = github_app.user
 
       expect(result).to eq("user_data")
+    end
+
+    it "retries with fixed rate (default behavior)" do
+      error_count = 0
+      allow(mock_client).to receive(:repositories) do
+        error_count += 1
+        if error_count < 3
+          raise StandardError.new("Temporary error")
+        else
+          "repos_data"
+        end
+      end
+      allow(github_app).to receive(:sleep) # Mock sleep to speed up test
+
+      result = github_app.repositories
+
+      expect(result).to eq("repos_data")
+      expect(github_app).to have_received(:sleep).twice # Should have slept 2 times before success
+    end
+
+    it "retries with exponential backoff when enabled" do
+      allow(ENV).to receive(:fetch).with("GH_APP_EXPONENTIAL_BACKOFF", "false").and_return("true")
+
+      # Create new instance with exponential backoff enabled
+      github_app_exponential = GitHubApp.new
+      allow(github_app_exponential).to receive(:client).and_return(mock_client)
+      allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+
+      error_count = 0
+      allow(mock_client).to receive(:organizations) do
+        error_count += 1
+        if error_count < 3
+          raise StandardError.new("Temporary error")
+        else
+          "orgs_data"
+        end
+      end
+      allow(github_app_exponential).to receive(:sleep) # Mock sleep to speed up test
+
+      result = github_app_exponential.organizations
+
+      expect(result).to eq("orgs_data")
+      expect(github_app_exponential).to have_received(:sleep).twice # Should have slept 2 times with exponential backoff
+    end
+
+    it "gives up after max retries" do
+      allow(mock_client).to receive(:organizations).and_raise(StandardError.new("Persistent error"))
+      allow(github_app).to receive(:sleep) # Mock sleep to speed up test
+
+      expect {
+        github_app.organizations
+      }.to raise_error(StandardError, "Persistent error")
+
+      # Should have slept 9 times (10 attempts total - 1)
+      expect(github_app).to have_received(:sleep).exactly(9).times
     end
   end
 
@@ -430,11 +488,22 @@ describe GitHubApp do
       expect { github_app.user }.to raise_error(StandardError, "Authentication failed")
     end
 
-    it "properly initializes Retryable configuration" do
-      # Check that retryable context is set up
-      retryable_context = github_app.instance_variable_get(:@retryable_context)
-      expect(retryable_context).to be_a(Symbol)
-      expect(retryable_context.to_s).to include("github_app_client")
+    it "properly initializes retry configuration" do
+      # Check that retry configuration is set up
+      retry_sleep = github_app.instance_variable_get(:@retry_sleep)
+      retry_tries = github_app.instance_variable_get(:@retry_tries)
+      retry_exponential_backoff = github_app.instance_variable_get(:@retry_exponential_backoff)
+      expect(retry_sleep).to eq(3)
+      expect(retry_tries).to eq(10)
+      expect(retry_exponential_backoff).to be false
+    end
+
+    it "allows enabling exponential backoff" do
+      allow(ENV).to receive(:fetch).with("GH_APP_EXPONENTIAL_BACKOFF", "false").and_return("true")
+
+      github_app = GitHubApp.new
+      retry_exponential_backoff = github_app.instance_variable_get(:@retry_exponential_backoff)
+      expect(retry_exponential_backoff).to be true
     end
   end
 end

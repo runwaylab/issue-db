@@ -171,18 +171,39 @@ class GitHubApp
     if app_key
       # Check if it's a file path (ends with .pem)
       if app_key.end_with?(".pem")
+        unless File.exist?(app_key)
+          raise "App key file not found: #{app_key}"
+        end
+
         @log.debug("Loading app key from file: #{app_key}")
-        return File.read(app_key)
+        key_content = File.read(app_key)
+
+        if key_content.strip.empty?
+          raise "App key file is empty: #{app_key}"
+        end
+
+        @log.debug("Successfully loaded app key from file (#{key_content.length} characters)")
+        return key_content
       else
         # It's a key string, process escape sequences
         @log.debug("Using provided app key string")
-        return app_key.gsub(/\\+n/, "\n")
+        return normalize_key_string(app_key)
       end
     end
 
     # Fall back to environment variable
     @log.debug("Loading app key from environment variable")
-    fetch_env_var("GH_APP_KEY").gsub(/\\+n/, "\n")
+    env_key = fetch_env_var("GH_APP_KEY")
+    normalize_key_string(env_key)
+  end
+
+  # Normalizes escape sequences in key strings safely
+  # @param key_string [String] The key string to normalize
+  # @return [String] The normalized key string
+  def normalize_key_string(key_string)
+    # Use simple string replacement to avoid ReDoS vulnerability
+    # This handles both single \n and multiple consecutive \\n sequences
+    key_string.gsub('\\n', "\n")
   end
 
   # Caches the octokit client if it is not nil and the token has not expired

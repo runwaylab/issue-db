@@ -55,6 +55,34 @@ describe GitHubApp, :vcr do
       expect(github_app.instance_variable_get(:@app_key)).to eq(expected_key)
     end
 
+    it "raises error when app key file doesn't exist" do
+      expect {
+        GitHubApp.new(
+          app_id: 999,
+          installation_id: 888,
+          app_key: "nonexistent_file.pem"
+        )
+      }.to raise_error("App key file not found: nonexistent_file.pem")
+    end
+
+    it "raises error when app key file is empty" do
+      # Create a temporary empty file
+      empty_file_path = "spec/fixtures/empty_key.pem"
+      File.write(empty_file_path, "")
+
+      begin
+        expect {
+          GitHubApp.new(
+            app_id: 999,
+            installation_id: 888,
+            app_key: empty_file_path
+          )
+        }.to raise_error("App key file is empty: #{empty_file_path}")
+      ensure
+        File.delete(empty_file_path) if File.exist?(empty_file_path)
+      end
+    end
+
     it "processes escape sequences in app key string" do
       key_with_escapes = "-----BEGIN RSA PRIVATE KEY-----\\nsome\\nkey\\ndata\\n-----END RSA PRIVATE KEY-----"
       github_app = GitHubApp.new(
@@ -358,6 +386,22 @@ describe GitHubApp, :vcr do
       allow(github_app).to receive(:client).and_return(client)
       allow(client).to receive(:respond_to?).with(:rate_limit, false).and_return(true)
       expect(github_app.respond_to?(:rate_limit)).to be true
+    end
+  end
+
+  describe "#jwt_token error handling" do
+    let(:invalid_key) { "invalid-key-content" }
+
+    it "raises OpenSSL error for invalid RSA private key" do
+      github_app = GitHubApp.new(app_id: "123", app_key: invalid_key)
+
+      expect { github_app.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError, /Neither PUB key nor PRIV key/)
+    end
+
+    it "raises the original OpenSSL error without modification" do
+      github_app = GitHubApp.new(app_id: "123", app_key: invalid_key)
+
+      expect { github_app.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError)
     end
   end
 

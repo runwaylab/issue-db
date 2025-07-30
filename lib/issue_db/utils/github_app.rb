@@ -15,7 +15,6 @@ require "octokit"
 require "jwt"
 require "redacting_logger"
 
-
 class GitHubApp
   TOKEN_EXPIRATION_TIME = 2700 # 45 minutes
   JWT_EXPIRATION_TIME = 600 # 10 minutes

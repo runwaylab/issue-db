@@ -65,9 +65,12 @@ gem install issue-db --version "X.X.X"
 
 ## Usage 💻
 
-The following CRUD operations are available for the `issue-db` gem:
+This section goes into details on the following CRUD operations are available for the `issue-db` gem.
 
-> Note: All methods return the `IssueDB::Record` of the object which was involved in the operation
+Note: All methods return the `IssueDB::Record` of the object which was involved in the operation
+
+> [!IMPORTANT]  
+> The key for the record is the title of the GitHub issue. This means that the key **must be unique** within the database. If you try to do any sort of duplicate operation on a key that already exists (like creating it again), the `issue-db` gem will return the existing record without modifying it. Here is an example log message where someone calls `db.create("order_number_123", { location: "London", items: [ "cookies", "espresso" ] })` but the key already exists: `skipping issue creation and returning existing issue - an issue already exists with the key: order_number_123`. Additionally, if there are duplicates (same issue titles), then the latest issue will be returned (ex: issue 15 will be returned instead of issue 14). Basically, if you use fully unique keys, you won't ever run into this issue so please make sure to use unique keys for your records!
 
 ### `db.create(key, data, options = {})`
 

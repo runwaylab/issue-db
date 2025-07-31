@@ -3,17 +3,17 @@
 require "spec_helper"
 require_relative "../../lib/issue_db"
 
-describe IssueDB do
+describe IssueDB::Client do
   let(:current_time) { Time.parse("2024-01-01 00:00:00").utc }
   let(:log) { instance_double(RedactingLogger).as_null_object }
   let(:client) { instance_double(Octokit::Client).as_null_object }
-  let(:database) { instance_double(Database).as_null_object }
-  let(:record) { instance_double(Record).as_null_object }
+  let(:database) { instance_double(IssueDB::Database).as_null_object }
+  let(:record) { instance_double(IssueDB::Record).as_null_object }
 
   before(:each) do
     allow(Time).to receive(:now).and_return(current_time)
     allow(Octokit::Client).to receive(:new).and_return(client)
-    allow(Database).to receive(:new).and_return(database)
+    allow(IssueDB::Database).to receive(:new).and_return(database)
     allow(record).to receive(:data).and_return({ "cool" => true, "number" => 1 })
   end
 

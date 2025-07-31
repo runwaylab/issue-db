@@ -4,7 +4,7 @@ require "spec_helper"
 require_relative "../../../lib/issue_db/cache"
 
 class DummyClass
-  include Cache
+  include IssueDB::Cache
 
   attr_accessor :client, :repo, :label, :log, :issues, :issues_last_updated
 
@@ -18,7 +18,7 @@ class DummyClass
   end
 end
 
-describe Cache do
+describe IssueDB::Cache do
   let(:client) { double("client") }
   let(:repo) { double("repo", full_name: "user/repo") }
   let(:label) { "issue-db" }

@@ -3,8 +3,8 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/parse"
 
-describe Parse do
-  include Parse
+describe IssueDB::Parse do
+  include IssueDB::Parse
 
   let(:valid_body) do
     <<~BODY
@@ -82,7 +82,7 @@ describe Parse do
 
     context "with missing guards" do
       it "raises a ParseError" do
-        expect { parse(body_missing_guards) }.to raise_error(ParseError, "issue body is missing a guard start or guard end")
+        expect { parse(body_missing_guards) }.to raise_error(IssueDB::ParseError, "issue body is missing a guard start or guard end")
       end
     end
 

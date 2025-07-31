@@ -3,7 +3,7 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/github"
 
-describe GitHub do
+describe IssueDB::Utils::GitHub do
   let(:app_id) { 123 }
   let(:installation_id) { 456 }
   let(:app_key) { File.read("spec/fixtures/fake_private_key.pem") }
@@ -73,7 +73,7 @@ describe GitHub do
 
   describe "#initialize" do
     it "initializes with environment variables" do
-      github = GitHub.new
+      github = IssueDB::Utils::GitHub.new
       expect(github.instance_variable_get(:@app_id)).to eq(app_id)
       expect(github.instance_variable_get(:@installation_id)).to eq(installation_id)
       expect(github.instance_variable_get(:@app_key)).to eq(app_key.gsub('\\n', "\n"))
@@ -84,7 +84,7 @@ describe GitHub do
       custom_logger = instance_double(RedactingLogger)
       allow(custom_logger).to receive(:debug)
 
-      github = GitHub.new(log: custom_logger, app_id: 999, installation_id: 888,
+      github = IssueDB::Utils::GitHub.new(log: custom_logger, app_id: 999, installation_id: 888,
                                  app_key: app_key, app_algo: "RS512")
 
       expect(github.instance_variable_get(:@log)).to eq(custom_logger)
@@ -96,7 +96,7 @@ describe GitHub do
 
     it "loads app key from .pem file path" do
       pem_file_path = "spec/fixtures/fake_private_key.pem"
-      github = GitHub.new(app_id: 999, installation_id: 888, app_key: pem_file_path)
+      github = IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888, app_key: pem_file_path)
       expected_key = File.read(pem_file_path)
       expect(github.instance_variable_get(:@app_key)).to eq(expected_key)
     end
@@ -104,7 +104,7 @@ describe GitHub do
     context "error handling" do
       it "raises error when app key file doesn't exist" do
         expect {
-          GitHub.new(app_id: 999, installation_id: 888, app_key: "nonexistent_file.pem")
+          IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888, app_key: "nonexistent_file.pem")
         }.to raise_error("App key file not found: nonexistent_file.pem")
       end
 
@@ -114,7 +114,7 @@ describe GitHub do
 
         begin
           expect {
-            GitHub.new(app_id: 999, installation_id: 888, app_key: empty_file_path)
+            IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888, app_key: empty_file_path)
           }.to raise_error("App key file is empty: #{empty_file_path}")
         ensure
           File.delete(empty_file_path) if File.exist?(empty_file_path)
@@ -124,31 +124,31 @@ describe GitHub do
       it "raises error when environment variable is missing" do
         allow(ENV).to receive(:fetch).with("GH_APP_KEY") { raise "environment variable GH_APP_KEY is not set" }
         expect {
-          GitHub.new(app_id: 999, installation_id: 888)
+          IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888)
         }.to raise_error(/environment variable GH_APP_KEY is not set/)
       end
     end
 
     it "processes escape sequences in app key string" do
       key_with_escapes = "-----BEGIN RSA PRIVATE KEY-----\\nsome\\nkey\\ndata\\n-----END RSA PRIVATE KEY-----"
-      github = GitHub.new(app_id: 999, installation_id: 888, app_key: key_with_escapes)
+      github = IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888, app_key: key_with_escapes)
       expected_key = key_with_escapes.gsub('\\n', "\n")
       expect(github.instance_variable_get(:@app_key)).to eq(expected_key)
     end
 
     it "falls back to environment variables when parameters are not provided" do
-      github = GitHub.new(app_id: 999, installation_id: 888)
+      github = IssueDB::Utils::GitHub.new(app_id: 999, installation_id: 888)
       expect(github.instance_variable_get(:@app_key)).to eq(app_key.gsub('\\n', "\n"))
     end
 
     it "creates default logger when none provided" do
-      github = GitHub.new
+      github = IssueDB::Utils::GitHub.new
       expect(github.instance_variable_get(:@log)).to eq(mock_logger)
     end
   end
 
   describe "private methods" do
-    let(:github) { GitHub.new }
+    let(:github) { IssueDB::Utils::GitHub.new }
 
     describe "#client" do
       it "creates a new client when client is nil" do
@@ -157,7 +157,7 @@ describe GitHub do
       end
 
       it "creates a new client when token is expired" do
-        github.instance_variable_set(:@token_refresh_time, Time.now - GitHub::TOKEN_EXPIRATION_TIME - 1)
+        github.instance_variable_set(:@token_refresh_time, Time.now - IssueDB::Utils::GitHub::TOKEN_EXPIRATION_TIME - 1)
         expect(github.send(:client)).to eq(mock_client)
       end
 
@@ -181,7 +181,7 @@ describe GitHub do
       end
 
       it "raises OpenSSL error for invalid RSA private key" do
-        invalid_github = GitHub.new(app_id: 123, app_key: "invalid-key-content")
+        invalid_github = IssueDB::Utils::GitHub.new(app_id: 123, app_key: "invalid-key-content")
         allow(JWT).to receive(:encode).and_call_original
         expect { invalid_github.send(:jwt_token) }.to raise_error(OpenSSL::PKey::RSAError)
       end
@@ -194,7 +194,7 @@ describe GitHub do
       end
 
       it "returns true when token has expired" do
-        github.instance_variable_set(:@token_refresh_time, Time.now - GitHub::TOKEN_EXPIRATION_TIME - 1)
+        github.instance_variable_set(:@token_refresh_time, Time.now - IssueDB::Utils::GitHub::TOKEN_EXPIRATION_TIME - 1)
         expect(github.send(:token_expired?)).to be true
       end
 
@@ -206,7 +206,7 @@ describe GitHub do
   end
 
   describe "#wait_for_rate_limit!" do
-    let(:github) { GitHub.new }
+    let(:github) { IssueDB::Utils::GitHub.new }
 
     before do
       allow(github).to receive(:client).and_return(mock_client)
@@ -256,7 +256,7 @@ describe GitHub do
   end
 
   describe "#method_missing" do
-    let(:github) { GitHub.new }
+    let(:github) { IssueDB::Utils::GitHub.new }
 
     before do
       allow(github).to receive(:client).and_return(mock_client)
@@ -336,7 +336,7 @@ describe GitHub do
 
       it "retries with exponential backoff when enabled" do
         allow(ENV).to receive(:fetch).with("GH_APP_EXPONENTIAL_BACKOFF", "false").and_return("true")
-        github_exponential = GitHub.new
+        github_exponential = IssueDB::Utils::GitHub.new
         allow(github_exponential).to receive(:client).and_return(mock_client)
         allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
 
@@ -388,7 +388,7 @@ describe GitHub do
   end
 
   describe "#respond_to_missing?" do
-    let(:github) { GitHub.new }
+    let(:github) { IssueDB::Utils::GitHub.new }
 
     before do
       allow(github).to receive(:client).and_return(mock_client)
@@ -411,7 +411,7 @@ describe GitHub do
   end
 
   describe "integration scenarios" do
-    let(:github) { GitHub.new }
+    let(:github) { IssueDB::Utils::GitHub.new }
 
     before do
       allow(github).to receive(:client).and_return(mock_client)
@@ -445,7 +445,7 @@ describe GitHub do
 
     it "allows enabling exponential backoff" do
       allow(ENV).to receive(:fetch).with("GH_APP_EXPONENTIAL_BACKOFF", "false").and_return("true")
-      github = GitHub.new
+      github = IssueDB::Utils::GitHub.new
       retry_exponential_backoff = github.instance_variable_get(:@retry_exponential_backoff)
       expect(retry_exponential_backoff).to be true
     end

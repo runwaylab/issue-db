@@ -4,7 +4,7 @@ require_relative "lib/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "issue-db"
-  spec.version       = Version::VERSION
+  spec.version       = IssueDB::Version::VERSION
   spec.authors       = ["runwaylab", "GrantBirki"]
   spec.license       = "MIT"
 

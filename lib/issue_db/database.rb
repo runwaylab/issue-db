@@ -51,7 +51,8 @@ class Database
     # if we make it here, no existing issues were found so we can safely create one
     issue = @client.create_issue(@repo.full_name, key, body, { labels: @label })
 
-    # append the newly created issue to the issues cache
+    # ensure the cache is initialized before appending
+    issues if @issues.nil?
     @issues << issue
 
     @log.debug("issue created: #{key}")
@@ -89,7 +90,14 @@ class Database
     updated_issue = @client.update_issue(@repo.full_name, issue.number, key, body)
 
     # update the issue in the cache using the reference we have
-    @issues[@issues.index(issue)] = updated_issue
+    index = @issues.index(issue)
+    if index
+      @issues[index] = updated_issue
+    else
+      @log.warn("issue not found in cache during update: #{key}")
+      # Force a cache refresh to ensure consistency
+      update_issue_cache!
+    end
 
     @log.debug("issue updated: #{key}")
     return Record.new(updated_issue)
@@ -106,7 +114,14 @@ class Database
     deleted_issue = @client.close_issue(@repo.full_name, issue.number)
 
     # update the issue in the cache using the reference we have
-    @issues[@issues.index(issue)] = deleted_issue
+    index = @issues.index(issue)
+    if index
+      @issues[index] = deleted_issue
+    else
+      @log.warn("issue not found in cache during delete: #{key}")
+      # Force a cache refresh to ensure consistency
+      update_issue_cache!
+    end
 
     # return the deleted issue as a Record object as it may contain useful data
     return Record.new(deleted_issue)
@@ -188,8 +203,7 @@ class Database
     update_issue_cache! if @issues.nil?
 
     # update the cache if it has expired
-    issues_cache_expired = (Time.now - @issues_last_updated) > @cache_expiry
-    if issues_cache_expired
+    if @issues_last_updated && (Time.now - @issues_last_updated) > @cache_expiry
       @log.debug("issue cache expired - last updated: #{@issues_last_updated} - refreshing now")
       update_issue_cache!
     end

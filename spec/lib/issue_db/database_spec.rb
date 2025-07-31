@@ -145,4 +145,72 @@ describe Database, :vcr do
       expect(results.first.number).to eq(11)
     end
   end
+
+  context "edge cases" do
+    it "handles cache inconsistency gracefully in update" do
+      # First initialize the cache properly with mocked data
+      search_result = double("search_result", total_count: 1, items: [{ title: "existing_issue", state: "open", number: 1 }])
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Initialize cache
+      subject.send(:update_issue_cache!)
+
+      # Now simulate an issue that exists in find_issue_by_key but not in the cache array
+      fake_issue = double("fake_issue", title: "fake_issue", state: "open", number: 999)
+      allow(subject).to receive(:find_issue_by_key).with("fake_issue", {}).and_return(fake_issue)
+
+      # Mock the update call
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+      updated_issue = double("updated_issue", number: 999, state: "open", title: "fake_issue", body: issue_body)
+      allow(@client).to receive(:update_issue).and_return(updated_issue)
+
+      # Mock update_issue_cache! to prevent actual API calls
+      expect(subject).to receive(:update_issue_cache!)
+      expect(log).to receive(:warn).with(/issue not found in cache during update/)
+
+      result = subject.update("fake_issue", { test: "data" })
+      expect(result).to be_a(Record)
+    end
+
+    it "handles cache inconsistency gracefully in delete" do
+      # First initialize the cache properly with mocked data
+      search_result = double("search_result", total_count: 1, items: [{ title: "existing_issue", state: "open", number: 1 }])
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Initialize cache
+      subject.send(:update_issue_cache!)
+
+      # Now simulate an issue that exists in find_issue_by_key but not in the cache array
+      fake_issue = double("fake_issue", title: "fake_issue", state: "open", number: 999)
+      allow(subject).to receive(:find_issue_by_key).with("fake_issue", {}).and_return(fake_issue)
+
+      # Mock the delete call
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+      deleted_issue = double("deleted_issue", number: 999, state: "closed", title: "fake_issue", body: issue_body)
+      allow(@client).to receive(:close_issue).and_return(deleted_issue)
+
+      # Mock update_issue_cache! to prevent actual API calls
+      expect(subject).to receive(:update_issue_cache!)
+      expect(log).to receive(:warn).with(/issue not found in cache during delete/)
+
+      result = subject.delete("fake_issue")
+      expect(result).to be_a(Record)
+    end
+  end
 end

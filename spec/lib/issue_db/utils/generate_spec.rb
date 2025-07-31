@@ -3,8 +3,8 @@
 require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/generate"
 
-describe Generate do
-  include Generate
+describe IssueDB::Generate do
+  include IssueDB::Generate
 
   let(:data) do
     {

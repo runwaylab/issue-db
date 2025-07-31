@@ -3,13 +3,13 @@
 require "spec_helper"
 require_relative "../../../lib/issue_db/database"
 
-describe Database, :vcr do
+describe IssueDB::Database, :vcr do
   before(:all) do
     @client = Octokit::Client.new(access_token: FAKE_TOKEN, page_size: 100)
     @client.auto_paginate = true
   end
 
-  let(:repo) { instance_double(Repository, full_name: REPO) }
+  let(:repo) { instance_double(IssueDB::Repository, full_name: REPO) }
   let(:current_time) { Time.parse("2024-01-01 00:00:00").utc }
   let(:log) { instance_double(RedactingLogger).as_null_object }
   let(:label) { "issue-db" }
@@ -22,7 +22,7 @@ describe Database, :vcr do
   subject { described_class.new(log, @client, repo, label, cache_expiry) }
 
   it "returns a database object successfully" do
-    expect(subject.class).to eq(Database)
+    expect(subject.class).to eq(IssueDB::Database)
   end
 
   context "read" do
@@ -33,7 +33,7 @@ describe Database, :vcr do
     end
 
     it "throws an error if the record cannot be found" do
-      expect { subject.read("event888") }.to raise_error(RecordNotFound, /no record found for key: event888/)
+      expect { subject.read("event888") }.to raise_error(IssueDB::RecordNotFound, /no record found for key: event888/)
     end
 
     it "finds that the issue cache is expired so it refreshes the cache on a read" do
@@ -82,7 +82,7 @@ describe Database, :vcr do
       expect(log).to receive(:debug).with(/issue created: new_event_key/)
 
       issue = subject.create("new_event_key", { test: "data" })
-      expect(issue).to be_a(Record)
+      expect(issue).to be_a(IssueDB::Record)
     end
   end
 
@@ -177,7 +177,7 @@ describe Database, :vcr do
       expect(log).to receive(:warn).with(/issue not found in cache during update/)
 
       result = subject.update("fake_issue", { test: "data" })
-      expect(result).to be_a(Record)
+      expect(result).to be_a(IssueDB::Record)
     end
 
     it "handles cache inconsistency gracefully in delete" do
@@ -210,7 +210,7 @@ describe Database, :vcr do
       expect(log).to receive(:warn).with(/issue not found in cache during delete/)
 
       result = subject.delete("fake_issue")
-      expect(result).to be_a(Record)
+      expect(result).to be_a(IssueDB::Record)
     end
   end
 end

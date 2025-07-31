@@ -4,7 +4,7 @@ require "spec_helper"
 require_relative "../../../../lib/issue_db/utils/init"
 
 class DummyClass
-  include Init
+  include IssueDB::Init
 
   attr_accessor :client, :repo, :label, :log
 
@@ -16,7 +16,7 @@ class DummyClass
   end
 end
 
-describe Init do
+describe IssueDB::Init do
   let(:client) { double("client") }
   let(:repo) { double("repo", full_name: "user/repo") }
   let(:label) { "issue-db" }

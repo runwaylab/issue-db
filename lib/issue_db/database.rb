@@ -51,9 +51,11 @@ class Database
     # if we make it here, no existing issues were found so we can safely create one
     issue = @client.create_issue(@repo.full_name, key, body, { labels: @label })
 
-    # ensure the cache is initialized before appending
-    issues if @issues.nil?
-    @issues << issue
+    # ensure the cache is initialized before appending and handle race conditions
+    current_issues = issues
+    if current_issues && !current_issues.include?(issue)
+      @issues << issue
+    end
 
     @log.debug("issue created: #{key}")
     return Record.new(issue)
@@ -135,7 +137,10 @@ class Database
   # options = {include_closed: true}
   # keys = db.list_keys(options)
   def list_keys(options = {})
-    keys = issues.select do |issue|
+    current_issues = issues
+    return [] if current_issues.nil?
+
+    keys = current_issues.select do |issue|
       options[:include_closed] || issue[:state] == "open"
     end.map do |issue|
       issue[:title]
@@ -152,7 +157,10 @@ class Database
   # options = {include_closed: true}
   # records = db.list(options)
   def list(options = {})
-    records = issues.select do |issue|
+    current_issues = issues
+    return [] if current_issues.nil?
+
+    records = current_issues.select do |issue|
       options[:include_closed] || issue[:state] == "open"
     end.map do |issue|
       Record.new(issue)
@@ -202,8 +210,8 @@ class Database
     # update the issues cache if it is nil
     update_issue_cache! if @issues.nil?
 
-    # update the cache if it has expired
-    if @issues_last_updated && (Time.now - @issues_last_updated) > @cache_expiry
+    # update the cache if it has expired (with nil safety)
+    if !@issues_last_updated.nil? && (Time.now - @issues_last_updated) > @cache_expiry
       @log.debug("issue cache expired - last updated: #{@issues_last_updated} - refreshing now")
       update_issue_cache!
     end

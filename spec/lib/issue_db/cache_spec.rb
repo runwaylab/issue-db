@@ -67,5 +67,29 @@ describe Cache do
         expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: some other error")
       end
     end
+
+    context "when search_issues returns nil response" do
+      it "logs an error and raises a StandardError" do
+        allow(client).to receive(:search_issues).and_return(nil)
+
+        expect(log).to receive(:debug).with("updating issue cache")
+        expect(log).to receive(:error).with("search_issues returned nil response or nil items")
+
+        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, "search_issues returned invalid response")
+      end
+    end
+
+    context "when search_issues returns response with nil items" do
+      it "logs an error and raises a StandardError" do
+        nil_items_response = double("response")
+        allow(nil_items_response).to receive(:items).and_return(nil)
+        allow(client).to receive(:search_issues).and_return(nil_items_response)
+
+        expect(log).to receive(:debug).with("updating issue cache")
+        expect(log).to receive(:error).with("search_issues returned nil response or nil items")
+
+        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, "search_issues returned invalid response")
+      end
+    end
   end
 end

@@ -105,8 +105,8 @@ class Database
 
     deleted_issue = @client.close_issue(@repo.full_name, issue.number)
 
-    # remove the issue from the cache
-    @issues.delete(issue)
+    # update the issue in the cache using the reference we have
+    @issues[@issues.index(issue)] = deleted_issue
 
     # return the deleted issue as a Record object as it may contain useful data
     return Record.new(deleted_issue)

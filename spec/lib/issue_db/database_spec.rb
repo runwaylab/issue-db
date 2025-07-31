@@ -96,9 +96,28 @@ describe Database, :vcr do
 
   context "delete" do
     it "deletes an issue successfully (closes)" do
+      # Delete the issue and verify it's closed
       issue = subject.delete("event999")
       expect(issue.source_data.number).to eq(11)
       expect(issue.source_data.state).to eq("closed")
+
+      # Verify the deleted record doesn't appear in normal lists (open only)
+      open_keys = subject.list_keys
+      expect(open_keys).not_to include("event999")
+
+      open_records = subject.list
+      expect(open_records.map(&:key)).not_to include("event999")
+
+      # But it should appear when including closed records
+      all_keys = subject.list_keys({ include_closed: true })
+      expect(all_keys).to include("event999")
+
+      all_records = subject.list({ include_closed: true })
+      expect(all_records.map(&:key)).to include("event999")
+
+      # Verify the closed record has the correct state
+      closed_record = all_records.find { |r| r.key == "event999" }
+      expect(closed_record.source_data.state).to eq("closed")
     end
   end
 

@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@a4f838919020b587bb8dd4493e8881bb113d3be7 # pin@v1.246.0
+      - uses: ruby/setup-ruby@2a7b30092b0caf9c046252510f9273b4875f3db9 # pin@v1.254.0
         with:
           bundler-cache: false
 
@@ -76,7 +76,7 @@ jobs:
         run: |
           GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} $ARTIFACT_PATH/${GEM_NAME}-${GEM_VERSION}.gem
 
-      - uses: ruby/setup-ruby@a4f838919020b587bb8dd4493e8881bb113d3be7 # pin@v1.246.0
+      - uses: ruby/setup-ruby@2a7b30092b0caf9c046252510f9273b4875f3db9 # pin@v1.254.0
         with:
           bundler-cache: false
 

@@ -9,6 +9,12 @@ require_relative "issue_db/models/repository"
 require_relative "issue_db/database"
 
 module IssueDB
+  # Module-level constructor that delegates to Client.new for convenience
+  # This allows users to call IssueDB.new instead of IssueDB::Client.new
+  def self.new(*args, **kwargs, &block)
+    Client.new(*args, **kwargs, &block)
+  end
+
   class Client
     include Version
     include Authentication

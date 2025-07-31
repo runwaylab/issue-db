@@ -19,6 +19,12 @@ describe IssueDB::Client do
 
   subject { described_class.new(REPO, log:, octokit_client: client) }
 
+  it "allows module-level instantiation via IssueDB.new" do
+    # This tests the module-level new method that delegates to Client.new
+    instance = IssueDB.new(REPO, log:, octokit_client: client)
+    expect(instance).to be_a(IssueDB::Client)
+  end
+
   it "is a valid version string" do
     expect(subject.version).to match(/\A\d+\.\d+\.\d+(\.\w+)?\z/)
   end

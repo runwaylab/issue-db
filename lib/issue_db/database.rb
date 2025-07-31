@@ -51,8 +51,11 @@ class Database
     # if we make it here, no existing issues were found so we can safely create one
     issue = @client.create_issue(@repo.full_name, key, body, { labels: @label })
 
-    # append the newly created issue to the issues cache
-    @issues << issue
+    # ensure the cache is initialized before appending and handle race conditions
+    current_issues = issues
+    if current_issues && !current_issues.include?(issue)
+      @issues << issue
+    end
 
     @log.debug("issue created: #{key}")
     return Record.new(issue)
@@ -89,7 +92,14 @@ class Database
     updated_issue = @client.update_issue(@repo.full_name, issue.number, key, body)
 
     # update the issue in the cache using the reference we have
-    @issues[@issues.index(issue)] = updated_issue
+    index = @issues.index(issue)
+    if index
+      @issues[index] = updated_issue
+    else
+      @log.warn("issue not found in cache during update: #{key}")
+      # Force a cache refresh to ensure consistency
+      update_issue_cache!
+    end
 
     @log.debug("issue updated: #{key}")
     return Record.new(updated_issue)
@@ -105,8 +115,15 @@ class Database
 
     deleted_issue = @client.close_issue(@repo.full_name, issue.number)
 
-    # remove the issue from the cache
-    @issues.delete(issue)
+    # update the issue in the cache using the reference we have
+    index = @issues.index(issue)
+    if index
+      @issues[index] = deleted_issue
+    else
+      @log.warn("issue not found in cache during delete: #{key}")
+      # Force a cache refresh to ensure consistency
+      update_issue_cache!
+    end
 
     # return the deleted issue as a Record object as it may contain useful data
     return Record.new(deleted_issue)
@@ -120,7 +137,10 @@ class Database
   # options = {include_closed: true}
   # keys = db.list_keys(options)
   def list_keys(options = {})
-    keys = issues.select do |issue|
+    current_issues = issues
+    return [] if current_issues.nil?
+
+    keys = current_issues.select do |issue|
       options[:include_closed] || issue[:state] == "open"
     end.map do |issue|
       issue[:title]
@@ -137,7 +157,10 @@ class Database
   # options = {include_closed: true}
   # records = db.list(options)
   def list(options = {})
-    records = issues.select do |issue|
+    current_issues = issues
+    return [] if current_issues.nil?
+
+    records = current_issues.select do |issue|
       options[:include_closed] || issue[:state] == "open"
     end.map do |issue|
       Record.new(issue)
@@ -187,9 +210,8 @@ class Database
     # update the issues cache if it is nil
     update_issue_cache! if @issues.nil?
 
-    # update the cache if it has expired
-    issues_cache_expired = (Time.now - @issues_last_updated) > @cache_expiry
-    if issues_cache_expired
+    # update the cache if it has expired (with nil safety)
+    if !@issues_last_updated.nil? && (Time.now - @issues_last_updated) > @cache_expiry
       @log.debug("issue cache expired - last updated: #{@issues_last_updated} - refreshing now")
       update_issue_cache!
     end

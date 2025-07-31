@@ -16,7 +16,13 @@ module Cache
     rescue StandardError => e
       retry_err_msg = "error search_issues() call: #{e.message}"
       @log.error(retry_err_msg)
-      raise retry_err_msg
+      raise StandardError, retry_err_msg
+    end
+
+    # Safety check to ensure search_response and items are not nil
+    if search_response.nil? || search_response.items.nil?
+      @log.error("search_issues returned nil response or nil items")
+      raise StandardError, "search_issues returned invalid response"
     end
 
     @log.debug("issue cache updated - cached #{search_response.total_count} issues")

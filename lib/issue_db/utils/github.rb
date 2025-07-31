@@ -276,7 +276,10 @@ class GitHub
   # @param args [Array] The arguments passed to the method.
   # @param block [Proc] An optional block passed to the method.
   # @return [Object] The result of the method call on the Octokit client.
-  def method_missing(method, *args, &block)
+  def method_missing(method, *args, **kwargs, &block)
+    # Check if retry is explicitly disabled for this call
+    disable_retry = kwargs.delete(:disable_retry) || false
+
     # Determine the rate limit type based on the method name and arguments
     rate_limit_type = case method.to_s
                       when /search_/
@@ -296,10 +299,16 @@ class GitHub
 
     # Handle special case for search_issues which can hit secondary rate limits
     if method.to_s == "search_issues"
+      request_proc = proc do
+        wait_for_rate_limit!(rate_limit_type)
+        client.send(method, *args, **kwargs, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
+      end
+
       begin
-        retry_request do
-          wait_for_rate_limit!(rate_limit_type)
-          client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
+        if disable_retry
+          request_proc.call
+        else
+          retry_request(&request_proc)
         end
       rescue StandardError => e
         # re-raise the error but if its a secondary rate limit error, just sleep for a minute
@@ -311,9 +320,15 @@ class GitHub
       end
     else
       # For all other methods, use standard retry and rate limiting
-      retry_request do
+      request_proc = proc do
         wait_for_rate_limit!(rate_limit_type)
-        client.send(method, *args, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
+        client.send(method, *args, **kwargs, &block) # rubocop:disable GitHub/AvoidObjectSendWithDynamicMethod
+      end
+
+      if disable_retry
+        request_proc.call
+      else
+        retry_request(&request_proc)
       end
     end
   end

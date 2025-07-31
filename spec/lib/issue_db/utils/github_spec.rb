@@ -362,6 +362,28 @@ describe GitHub do
 
         expect(github).to have_received(:sleep).exactly(9).times
       end
+
+      it "bypasses retry logic when disable_retry is true for search_issues" do
+        allow(mock_client).to receive(:search_issues).with("test").and_raise(StandardError.new("Network error"))
+        allow(github).to receive(:sleep)
+
+        expect {
+          github.search_issues("test", disable_retry: true)
+        }.to raise_error(StandardError, "Network error")
+
+        expect(github).not_to have_received(:sleep)
+      end
+
+      it "bypasses retry logic when disable_retry is true for other methods" do
+        allow(mock_client).to receive(:user).and_raise(StandardError.new("Network error"))
+        allow(github).to receive(:sleep)
+
+        expect {
+          github.user(disable_retry: true)
+        }.to raise_error(StandardError, "Network error")
+
+        expect(github).not_to have_received(:sleep)
+      end
     end
   end
 

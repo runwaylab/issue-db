@@ -96,9 +96,28 @@ describe Database, :vcr do
 
   context "delete" do
     it "deletes an issue successfully (closes)" do
+      # Delete the issue and verify it's closed
       issue = subject.delete("event999")
       expect(issue.source_data.number).to eq(11)
       expect(issue.source_data.state).to eq("closed")
+
+      # Verify the deleted record doesn't appear in normal lists (open only)
+      open_keys = subject.list_keys
+      expect(open_keys).not_to include("event999")
+
+      open_records = subject.list
+      expect(open_records.map(&:key)).not_to include("event999")
+
+      # But it should appear when including closed records
+      all_keys = subject.list_keys({ include_closed: true })
+      expect(all_keys).to include("event999")
+
+      all_records = subject.list({ include_closed: true })
+      expect(all_records.map(&:key)).to include("event999")
+
+      # Verify the closed record has the correct state
+      closed_record = all_records.find { |r| r.key == "event999" }
+      expect(closed_record.source_data.state).to eq("closed")
     end
   end
 
@@ -124,6 +143,74 @@ describe Database, :vcr do
       results = subject.refresh!
       expect(results.length).to eq(5)
       expect(results.first.number).to eq(11)
+    end
+  end
+
+  context "edge cases" do
+    it "handles cache inconsistency gracefully in update" do
+      # First initialize the cache properly with mocked data
+      search_result = double("search_result", total_count: 1, items: [{ title: "existing_issue", state: "open", number: 1 }])
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Initialize cache
+      subject.send(:update_issue_cache!)
+
+      # Now simulate an issue that exists in find_issue_by_key but not in the cache array
+      fake_issue = double("fake_issue", title: "fake_issue", state: "open", number: 999)
+      allow(subject).to receive(:find_issue_by_key).with("fake_issue", {}).and_return(fake_issue)
+
+      # Mock the update call
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+      updated_issue = double("updated_issue", number: 999, state: "open", title: "fake_issue", body: issue_body)
+      allow(@client).to receive(:update_issue).and_return(updated_issue)
+
+      # Mock update_issue_cache! to prevent actual API calls
+      expect(subject).to receive(:update_issue_cache!)
+      expect(log).to receive(:warn).with(/issue not found in cache during update/)
+
+      result = subject.update("fake_issue", { test: "data" })
+      expect(result).to be_a(Record)
+    end
+
+    it "handles cache inconsistency gracefully in delete" do
+      # First initialize the cache properly with mocked data
+      search_result = double("search_result", total_count: 1, items: [{ title: "existing_issue", state: "open", number: 1 }])
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Initialize cache
+      subject.send(:update_issue_cache!)
+
+      # Now simulate an issue that exists in find_issue_by_key but not in the cache array
+      fake_issue = double("fake_issue", title: "fake_issue", state: "open", number: 999)
+      allow(subject).to receive(:find_issue_by_key).with("fake_issue", {}).and_return(fake_issue)
+
+      # Mock the delete call
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+      deleted_issue = double("deleted_issue", number: 999, state: "closed", title: "fake_issue", body: issue_body)
+      allow(@client).to receive(:close_issue).and_return(deleted_issue)
+
+      # Mock update_issue_cache! to prevent actual API calls
+      expect(subject).to receive(:update_issue_cache!)
+      expect(log).to receive(:warn).with(/issue not found in cache during delete/)
+
+      result = subject.delete("fake_issue")
+      expect(result).to be_a(Record)
     end
   end
 end

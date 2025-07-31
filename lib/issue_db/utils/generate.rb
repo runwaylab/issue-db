@@ -4,13 +4,13 @@ module IssueDB
   class GenerateError < StandardError; end
 
   module Generate
-  # Generates the issue body with embedded data
-  # :param data [Hash] the data to embed in the issue body
-  # :param body_before [String] the body of the issue before the data (optional)
-  # :param body_after [String] the body of the issue after the data (optional)
-  # :param guard_start [String] the guard start string which is used to identify the start of the data
-  # :param guard_end [String] the guard end string which is used to identify the end of the data
-  # :return [String] the issue body with the embedded data
+    # Generates the issue body with embedded data
+    # :param data [Hash] the data to embed in the issue body
+    # :param body_before [String] the body of the issue before the data (optional)
+    # :param body_after [String] the body of the issue after the data (optional)
+    # :param guard_start [String] the guard start string which is used to identify the start of the data
+    # :param guard_end [String] the guard end string which is used to identify the end of the data
+    # :return [String] the issue body with the embedded data
     def generate(
       data,
       body_before: nil,

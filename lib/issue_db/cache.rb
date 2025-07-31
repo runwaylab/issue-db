@@ -2,8 +2,8 @@
 
 module IssueDB
   module Cache
-  # A helper method to update all issues in the cache
-  # :return: The updated issue cache as a list of issues
+    # A helper method to update all issues in the cache
+    # :return: The updated issue cache as a list of issues
     def update_issue_cache!
       @log.debug("updating issue cache")
 

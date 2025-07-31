@@ -2,8 +2,8 @@
 
 module IssueDB
   module Init
-  # A helper method for initializing the IssueDB library when .new is called
-  # Everything in this method should be idempotent and safe to call multiple times
+    # A helper method for initializing the IssueDB library when .new is called
+    # Everything in this method should be idempotent and safe to call multiple times
     def init!
       begin
         @client.add_label(

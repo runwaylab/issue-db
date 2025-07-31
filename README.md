@@ -88,6 +88,23 @@ record = db.create("order_number_123", { location: "London", items: [ "cookies",
 # more on this in another section of the README below
 options = { body_before: "some markdown text before the data", body_after: "some markdown text after the data" }
 record = db.create("order_number_123", { location: "London", items: [ "cookies", "espresso" ] }, options)
+
+# with the `labels` option to add additional GitHub labels to the issue (in addition to the library-managed label)
+options = { labels: ["priority:high", "customer:premium"] }
+record = db.create("order_number_123", { location: "London", items: [ "cookies", "espresso" ] }, options)
+
+# with the `assignees` option to assign GitHub users to the issue
+options = { assignees: ["alice", "bob"] }
+record = db.create("order_number_123", { location: "London", items: [ "cookies", "espresso" ] }, options)
+
+# with multiple options combined
+options = { 
+  labels: ["priority:high", "customer:premium"],
+  assignees: ["alice", "bob"],
+  body_before: "some markdown text before the data", 
+  body_after: "some markdown text after the data" 
+}
+record = db.create("order_number_123", { location: "London", items: [ "cookies", "espresso" ] }, options)
 ```
 
 Notes:
@@ -125,6 +142,23 @@ record = db.update("order_number_123", { location: "London", items: [ "cookies",
 # more on this in another section of the README below
 options = { body_before: "# Order 123\n\nData:", body_after: "Please do not edit the body of this issue" }
 record = db.update("order_number_123", { location: "London", items: [ "cookies", "espresso", "chips" ] }, options)
+
+# with the `labels` option to add additional GitHub labels to the issue (in addition to the library-managed label)
+options = { labels: ["status:processed", "priority:low"] }
+record = db.update("order_number_123", { location: "London", items: [ "cookies", "espresso", "chips" ] }, options)
+
+# with the `assignees` option to assign GitHub users to the issue
+options = { assignees: ["charlie", "diana"] }
+record = db.update("order_number_123", { location: "London", items: [ "cookies", "espresso", "chips" ] }, options)
+
+# with multiple options combined
+options = { 
+  labels: ["status:processed", "priority:low"],
+  assignees: ["charlie", "diana"],
+  body_before: "# Order 123\n\nData:", 
+  body_after: "Please do not edit the body of this issue" 
+}
+record = db.update("order_number_123", { location: "London", items: [ "cookies", "espresso", "chips" ] }, options)
 ```
 
 ### `db.delete(key, options = {})`
@@ -136,6 +170,21 @@ Example:
 
 ```ruby
 record = db.delete("order_number_123")
+
+# with the `labels` option to add additional GitHub labels to the issue before closing it
+options = { labels: ["archived", "completed"] }
+record = db.delete("order_number_123", options)
+
+# with the `assignees` option to assign GitHub users to the issue before closing it
+options = { assignees: ["alice"] }
+record = db.delete("order_number_123", options)
+
+# with multiple options combined
+options = { 
+  labels: ["archived", "completed"],
+  assignees: ["alice"]
+}
+record = db.delete("order_number_123", options)
 ```
 
 ### `db.list_keys(options = {})`
@@ -194,6 +243,153 @@ This section will go into detail around how you can configure the `issue-db` gem
 | `GH_APP_EXPONENTIAL_BACKOFF` | Whether to use exponential backoff for retries. When `true`, sleep time doubles with each retry. When `false`, uses fixed sleep time. | `false` |
 | `GH_APP_ALGO` | The algo to use for your GitHub App if providing a private key | `RS256` |
 | `ISSUE_DB_GITHUB_TOKEN` | The GitHub personal access token to use for authenticating with the GitHub API. You can also use a GitHub app or pass in your own authenticated Octokit.rb instance | `nil` |
+
+## Labels 🏷️
+
+The `issue-db` gem uses GitHub issue labels for organization and management. Here's how labels work:
+
+### Library-Managed Label
+
+The gem automatically applies a library-managed label (default: `issue-db`) to all issues it creates. This label:
+
+- **Cannot be modified or removed** by users (the gem will always ensure it's present)
+- Is used to identify which issues in the repository are managed by the `issue-db` gem
+- Can be customized by setting the `ISSUE_DB_LABEL` environment variable or passing the `label` parameter to `IssueDB.new()`
+
+### Additional Custom Labels
+
+You can add your own custom labels to issues when creating, updating, or deleting records by using the `labels` option:
+
+```ruby
+# Add custom labels when creating a record
+options = { labels: ["priority:high", "customer:premium", "region:europe"] }
+record = db.create("order_123", { product: "laptop" }, options)
+
+# Add custom labels when updating a record
+options = { labels: ["status:processed", "priority:low"] }
+record = db.update("order_123", { product: "laptop", status: "shipped" }, options)
+
+# Add custom labels before deleting (closing) a record
+options = { labels: ["archived", "completed", "Q4-2024"] }
+record = db.delete("order_123", options)
+```
+
+**Important Notes:**
+
+- Custom labels are **added in addition** to the library-managed label, not instead of it
+- If you accidentally include the library-managed label in your custom labels array, it will be automatically filtered out to prevent duplicates
+- Custom labels follow GitHub's label naming conventions and restrictions
+- Labels help with organization, filtering, and automation workflows in GitHub
+
+### Label Preservation
+
+When performing update or delete operations, the gem preserves existing labels by default:
+
+```ruby
+# Create a record with custom labels
+options = { labels: ["priority:high", "customer:premium"] }
+record = db.create("order_123", { product: "laptop" }, options)
+# Result: Issue has labels ["issue-db", "priority:high", "customer:premium"]
+
+# Update the record WITHOUT specifying labels - existing labels are preserved
+record = db.update("order_123", { product: "laptop", status: "shipped" })
+# Result: Issue STILL has labels ["issue-db", "priority:high", "customer:premium"]
+
+# Update the record WITH new labels - replaces all labels (except library-managed)
+options = { labels: ["status:processed", "priority:low"] }
+record = db.update("order_123", { product: "laptop", status: "delivered" }, options)
+# Result: Issue now has labels ["issue-db", "status:processed", "priority:low"]
+```
+
+**Key Behavior:**
+
+- **Labels specified** = Replace all labels with library-managed label + specified labels
+- **No labels specified** = Preserve existing labels exactly as they are
+
+### Example with Multiple Options
+
+You can combine labels with other options:
+
+```ruby
+options = {
+  labels: ["priority:high", "customer:vip"],
+  body_before: "## Order Details\n\nCustomer: VIP\n\n",
+  body_after: "\n\n---\n*This order requires special handling*"
+}
+record = db.create("vip_order_456", { items: ["premium_service"] }, options)
+```
+
+## Assignees 👥
+
+The `issue-db` gem supports GitHub issue assignees for task ownership and responsibility tracking. Here's how assignees work:
+
+### Basic Assignee Usage
+
+You can assign GitHub users to issues when creating, updating, or deleting records by using the `assignees` option:
+
+```ruby
+# Assign users when creating a record
+options = { assignees: ["alice", "bob"] }
+record = db.create("task_123", { type: "code_review" }, options)
+
+# Assign users when updating a record
+options = { assignees: ["charlie", "diana"] }
+record = db.update("task_123", { type: "code_review", status: "in_progress" }, options)
+
+# Assign users before deleting (closing) a record
+options = { assignees: ["alice"] }
+record = db.delete("task_123", options)
+```
+
+### Assignee Preservation
+
+Just like labels, the gem preserves existing assignees by default when no assignees are specified:
+
+```ruby
+# Create a record with assignees
+options = { assignees: ["alice", "bob"] }
+record = db.create("task_123", { type: "code_review" }, options)
+# Result: Issue is assigned to alice and bob
+
+# Update the record WITHOUT specifying assignees - existing assignees are preserved
+record = db.update("task_123", { type: "code_review", status: "in_progress" })
+# Result: Issue is STILL assigned to alice and bob
+
+# Update the record WITH new assignees - replaces all assignees
+options = { assignees: ["charlie"] }
+record = db.update("task_123", { type: "code_review", status: "completed" }, options)
+# Result: Issue is now only assigned to charlie
+```
+
+**Key Behavior:**
+
+- **Assignees specified** = Replace all assignees with the specified assignees
+- **No assignees specified** = Preserve existing assignees exactly as they are
+- **Empty array specified** = Remove all assignees from the issue
+
+### Combining Labels and Assignees
+
+You can use both labels and assignees together for comprehensive issue management:
+
+```ruby
+options = {
+  labels: ["priority:high", "type:bug", "team:backend"],
+  assignees: ["alice", "bob"],
+  body_before: "## Bug Report\n\nPriority: High\nTeam: Backend\n\n",
+  body_after: "\n\n---\n*Assigned to backend team leads*"
+}
+record = db.create("bug_456", { 
+  error: "Database timeout", 
+  severity: "critical" 
+}, options)
+```
+
+**Important Notes:**
+
+- Assignees must be valid GitHub usernames with access to the repository
+- You can assign up to 10 users to a single issue (GitHub's limit)
+- Invalid or inaccessible usernames will cause the API call to fail
+- Assignees help with responsibility tracking, notifications, and project management workflows
 
 ## Authentication 🔒
 

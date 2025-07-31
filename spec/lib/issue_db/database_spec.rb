@@ -84,6 +84,65 @@ describe IssueDB::Database, :vcr do
       issue = subject.create("new_event_key", { test: "data" })
       expect(issue).to be_a(IssueDB::Record)
     end
+
+    it "creates a new record with additional labels" do
+      # Mock the client to return empty array for existing issues
+      search_result = double("search_result", items: [], total_count: 0)
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Create a properly formatted issue body with guards
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the create_issue call with labels verification
+      new_issue = double("issue", number: 999, state: "open", title: "new_event_with_labels", body: issue_body)
+      expect(@client).to receive(:create_issue).with(
+        anything, anything, anything,
+        hash_including(labels: ["issue-db", "priority:high", "bug"])
+      ).and_return(new_issue)
+
+      expect(log).to receive(:debug).with(/issue created: new_event_with_labels/)
+
+      issue = subject.create("new_event_with_labels", { test: "data" }, { labels: ["priority:high", "bug"] })
+      expect(issue).to be_a(IssueDB::Record)
+    end
+
+    it "creates a new record and filters out duplicate library label from user labels" do
+      # Mock the client to return empty array for existing issues
+      search_result = double("search_result", items: [], total_count: 0)
+      allow(@client).to receive(:search_issues).and_return(search_result)
+
+      # Create a properly formatted issue body with guards
+      issue_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the create_issue call - should only have one instance of "issue-db" label
+      new_issue = double("issue", number: 999, state: "open", title: "new_event_no_duplicates", body: issue_body)
+      expect(@client).to receive(:create_issue).with(
+        anything, anything, anything,
+        hash_including(labels: ["issue-db", "priority:low"])
+      ).and_return(new_issue)
+
+      expect(log).to receive(:debug).with(/issue created: new_event_no_duplicates/)
+
+      # User tries to include the library label, but it should be filtered out
+      issue = subject.create("new_event_no_duplicates", { test: "data" }, { labels: ["issue-db", "priority:low"] })
+      expect(issue).to be_a(IssueDB::Record)
+    end
   end
 
   context "update" do
@@ -91,6 +150,110 @@ describe IssueDB::Database, :vcr do
       issue = subject.update("event999", { cool: false })
       expect(issue.source_data.number).to eq(12)
       expect(issue.source_data.state).to eq("open")
+    end
+
+    it "updates an issue with additional labels" do
+      # Mock finding the issue
+      existing_issue = double("issue", number: 123, title: "test_event", state: "open")
+      allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+      # Create a properly formatted updated issue body with guards
+      updated_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "updated data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the update_issue call with labels verification
+      updated_issue = double("issue", number: 123, state: "open", title: "test_event", body: updated_body)
+      expect(@client).to receive(:update_issue).with(
+        anything, 123, anything, anything,
+        hash_including(labels: ["issue-db", "enhancement", "documentation"])
+      ).and_return(updated_issue)
+
+      # Mock cache methods - create a proper array for @issues
+      issues_array = [existing_issue]
+      allow(subject).to receive(:issues).and_return(issues_array)
+      subject.instance_variable_set(:@issues, issues_array)
+
+      expect(log).to receive(:debug).with(/issue updated: test_event/)
+
+      issue = subject.update("test_event", { test: "updated data" }, { labels: ["enhancement", "documentation"] })
+      expect(issue).to be_a(IssueDB::Record)
+    end
+
+    it "updates an issue without modifying labels when none are specified" do
+      # Mock finding the issue
+      existing_issue = double("issue", number: 456, title: "test_preserve_labels", state: "open")
+      allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+      # Create a properly formatted updated issue body with guards
+      updated_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "updated data without labels"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the update_issue call WITHOUT labels - should preserve existing labels
+      updated_issue = double("issue", number: 456, state: "open", title: "test_preserve_labels", body: updated_body)
+      expect(@client).to receive(:update_issue).with(
+        anything, 456, anything, anything,
+        {}  # Empty hash - no labels parameter should be sent
+      ).and_return(updated_issue)
+
+      # Mock cache methods - create a proper array for @issues
+      issues_array = [existing_issue]
+      allow(subject).to receive(:issues).and_return(issues_array)
+      subject.instance_variable_set(:@issues, issues_array)
+
+      expect(log).to receive(:debug).with(/issue updated: test_preserve_labels/)
+
+      # No labels specified - should preserve existing labels
+      issue = subject.update("test_preserve_labels", { test: "updated data without labels" })
+      expect(issue).to be_a(IssueDB::Record)
+    end
+
+    it "updates an issue and filters out duplicate library label from user labels" do
+      # Mock finding the issue
+      existing_issue = double("issue", number: 123, title: "test_event_no_duplicates", state: "open")
+      allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+      # Create a properly formatted updated issue body with guards
+      updated_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "updated data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the update_issue call - should only have one instance of "issue-db" label
+      updated_issue = double("issue", number: 123, state: "open", title: "test_event_no_duplicates", body: updated_body)
+      expect(@client).to receive(:update_issue).with(
+        anything, 123, anything, anything,
+        hash_including(labels: ["issue-db", "priority:medium"])
+      ).and_return(updated_issue)
+
+      # Mock cache methods - create a proper array for @issues
+      issues_array = [existing_issue]
+      allow(subject).to receive(:issues).and_return(issues_array)
+      subject.instance_variable_set(:@issues, issues_array)
+
+      expect(log).to receive(:debug).with(/issue updated: test_event_no_duplicates/)
+
+      # User tries to include the library label, but it should be filtered out
+      issue = subject.update("test_event_no_duplicates", { test: "updated data" }, { labels: ["issue-db", "priority:medium"] })
+      expect(issue).to be_a(IssueDB::Record)
     end
   end
 
@@ -118,6 +281,342 @@ describe IssueDB::Database, :vcr do
       # Verify the closed record has the correct state
       closed_record = all_records.find { |r| r.key == "event999" }
       expect(closed_record.source_data.state).to eq("closed")
+    end
+
+    it "deletes an issue with additional labels before closing" do
+      # Mock finding the issue
+      existing_issue = double("issue", number: 456, title: "test_delete_with_labels", state: "open")
+      allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+      # Mock the update_issue call with labels (before closing)
+      expect(@client).to receive(:update_issue).with(
+        anything, 456,
+        hash_including(labels: ["issue-db", "archived", "resolved"])
+      )
+
+      # Create a properly formatted closed issue body with guards
+      closed_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the close_issue call
+      closed_issue = double("issue", number: 456, state: "closed", title: "test_delete_with_labels", body: closed_body)
+      expect(@client).to receive(:close_issue).and_return(closed_issue)
+
+      # Mock cache methods - create a proper array for @issues
+      issues_array = [existing_issue]
+      allow(subject).to receive(:issues).and_return(issues_array)
+      subject.instance_variable_set(:@issues, issues_array)
+
+      expect(log).to receive(:debug).with(/issue deleted: test_delete_with_labels/)
+
+      issue = subject.delete("test_delete_with_labels", { labels: ["archived", "resolved"] })
+      expect(issue).to be_a(IssueDB::Record)
+    end
+
+    it "deletes an issue and filters out duplicate library label from user labels" do
+      # Mock finding the issue
+      existing_issue = double("issue", number: 456, title: "test_delete_no_duplicates", state: "open")
+      allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+      # Mock the update_issue call - should only have one instance of "issue-db" label
+      expect(@client).to receive(:update_issue).with(
+        anything, 456,
+        hash_including(labels: ["issue-db", "finished"])
+      )
+
+      # Create a properly formatted closed issue body with guards
+      closed_body = <<~BODY
+        <!--- issue-db-start -->
+        ```json
+        {
+          "test": "data"
+        }
+        ```
+        <!--- issue-db-end -->
+      BODY
+
+      # Mock the close_issue call
+      closed_issue = double("issue", number: 456, state: "closed", title: "test_delete_no_duplicates", body: closed_body)
+      expect(@client).to receive(:close_issue).and_return(closed_issue)
+
+      # Mock cache methods - create a proper array for @issues
+      issues_array = [existing_issue]
+      allow(subject).to receive(:issues).and_return(issues_array)
+      subject.instance_variable_set(:@issues, issues_array)
+
+      expect(log).to receive(:debug).with(/issue deleted: test_delete_no_duplicates/)
+
+      # User tries to include the library label, but it should be filtered out
+      issue = subject.delete("test_delete_no_duplicates", { labels: ["issue-db", "finished"] })
+      expect(issue).to be_a(IssueDB::Record)
+    end
+  end
+
+  context "assignees" do
+    context "create with assignees" do
+      it "creates a new record with assignees" do
+        # Mock the client to return empty array for existing issues
+        search_result = double("search_result", items: [], total_count: 0)
+        allow(@client).to receive(:search_issues).and_return(search_result)
+
+        # Create a properly formatted issue body with guards
+        issue_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the create_issue call with assignees verification
+        new_issue = double("issue", number: 999, state: "open", title: "new_event_with_assignees", body: issue_body)
+        expect(@client).to receive(:create_issue).with(
+          anything, anything, anything,
+          hash_including(assignees: ["user1", "user2"], labels: ["issue-db"])
+        ).and_return(new_issue)
+
+        expect(log).to receive(:debug).with(/issue created: new_event_with_assignees/)
+
+        issue = subject.create("new_event_with_assignees", { test: "data" }, { assignees: ["user1", "user2"] })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+
+      it "creates a new record with both labels and assignees" do
+        # Mock the client to return empty array for existing issues
+        search_result = double("search_result", items: [], total_count: 0)
+        allow(@client).to receive(:search_issues).and_return(search_result)
+
+        # Create a properly formatted issue body with guards
+        issue_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the create_issue call with both labels and assignees verification
+        new_issue = double("issue", number: 999, state: "open", title: "new_event_with_both", body: issue_body)
+        expect(@client).to receive(:create_issue).with(
+          anything, anything, anything,
+          hash_including(
+            labels: ["issue-db", "priority:high", "bug"],
+            assignees: ["user1", "user2"]
+          )
+        ).and_return(new_issue)
+
+        expect(log).to receive(:debug).with(/issue created: new_event_with_both/)
+
+        issue = subject.create("new_event_with_both", { test: "data" }, {
+          labels: ["priority:high", "bug"],
+          assignees: ["user1", "user2"]
+        })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+    end
+
+    context "update with assignees" do
+      it "updates an issue with assignees" do
+        # Mock finding the issue
+        existing_issue = double("issue", number: 123, title: "test_event", state: "open")
+        allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+        # Create a properly formatted updated issue body with guards
+        updated_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "updated data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the update_issue call with assignees verification
+        updated_issue = double("issue", number: 123, state: "open", title: "test_event", body: updated_body)
+        expect(@client).to receive(:update_issue).with(
+          anything, 123, anything, anything,
+          hash_including(assignees: ["user3", "user4"])
+        ).and_return(updated_issue)
+
+        # Mock cache methods - create a proper array for @issues
+        issues_array = [existing_issue]
+        allow(subject).to receive(:issues).and_return(issues_array)
+        subject.instance_variable_set(:@issues, issues_array)
+
+        expect(log).to receive(:debug).with(/issue updated: test_event/)
+
+        issue = subject.update("test_event", { test: "updated data" }, { assignees: ["user3", "user4"] })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+
+      it "updates an issue without modifying assignees when none are specified" do
+        # Mock finding the issue
+        existing_issue = double("issue", number: 456, title: "test_preserve_assignees", state: "open")
+        allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+        # Create a properly formatted updated issue body with guards
+        updated_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "updated data without assignees"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the update_issue call WITHOUT assignees - should preserve existing assignees
+        updated_issue = double("issue", number: 456, state: "open", title: "test_preserve_assignees", body: updated_body)
+        expect(@client).to receive(:update_issue).with(
+          anything, 456, anything, anything,
+          {}  # Empty hash - no assignees parameter should be sent
+        ).and_return(updated_issue)
+
+        # Mock cache methods - create a proper array for @issues
+        issues_array = [existing_issue]
+        allow(subject).to receive(:issues).and_return(issues_array)
+        subject.instance_variable_set(:@issues, issues_array)
+
+        expect(log).to receive(:debug).with(/issue updated: test_preserve_assignees/)
+
+        # No assignees specified - should preserve existing assignees
+        issue = subject.update("test_preserve_assignees", { test: "updated data without assignees" })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+
+      it "updates an issue with both labels and assignees" do
+        # Mock finding the issue
+        existing_issue = double("issue", number: 123, title: "test_event", state: "open")
+        allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+        # Create a properly formatted updated issue body with guards
+        updated_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "updated data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the update_issue call with both labels and assignees verification
+        updated_issue = double("issue", number: 123, state: "open", title: "test_event", body: updated_body)
+        expect(@client).to receive(:update_issue).with(
+          anything, 123, anything, anything,
+          hash_including(
+            labels: ["issue-db", "enhancement", "documentation"],
+            assignees: ["user5", "user6"]
+          )
+        ).and_return(updated_issue)
+
+        # Mock cache methods - create a proper array for @issues
+        issues_array = [existing_issue]
+        allow(subject).to receive(:issues).and_return(issues_array)
+        subject.instance_variable_set(:@issues, issues_array)
+
+        expect(log).to receive(:debug).with(/issue updated: test_event/)
+
+        issue = subject.update("test_event", { test: "updated data" }, {
+          labels: ["enhancement", "documentation"],
+          assignees: ["user5", "user6"]
+        })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+    end
+
+    context "delete with assignees" do
+      it "deletes an issue with assignees before closing" do
+        # Mock finding the issue
+        existing_issue = double("issue", number: 456, title: "test_delete_with_assignees", state: "open")
+        allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+        # Mock the update_issue call with assignees (before closing)
+        expect(@client).to receive(:update_issue).with(
+          anything, 456,
+          hash_including(assignees: ["maintainer1", "maintainer2"])
+        )
+
+        # Create a properly formatted closed issue body with guards
+        closed_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the close_issue call
+        closed_issue = double("issue", number: 456, state: "closed", title: "test_delete_with_assignees", body: closed_body)
+        expect(@client).to receive(:close_issue).and_return(closed_issue)
+
+        # Mock cache methods - create a proper array for @issues
+        issues_array = [existing_issue]
+        allow(subject).to receive(:issues).and_return(issues_array)
+        subject.instance_variable_set(:@issues, issues_array)
+
+        expect(log).to receive(:debug).with(/issue deleted: test_delete_with_assignees/)
+
+        issue = subject.delete("test_delete_with_assignees", { assignees: ["maintainer1", "maintainer2"] })
+        expect(issue).to be_a(IssueDB::Record)
+      end
+
+      it "deletes an issue with both labels and assignees before closing" do
+        # Mock finding the issue
+        existing_issue = double("issue", number: 456, title: "test_delete_with_both", state: "open")
+        allow(subject).to receive(:find_issue_by_key).and_return(existing_issue)
+
+        # Mock the update_issue call with both labels and assignees (before closing)
+        expect(@client).to receive(:update_issue).with(
+          anything, 456,
+          hash_including(
+            labels: ["issue-db", "archived", "resolved"],
+            assignees: ["maintainer1", "maintainer2"]
+          )
+        )
+
+        # Create a properly formatted closed issue body with guards
+        closed_body = <<~BODY
+          <!--- issue-db-start -->
+          ```json
+          {
+            "test": "data"
+          }
+          ```
+          <!--- issue-db-end -->
+        BODY
+
+        # Mock the close_issue call
+        closed_issue = double("issue", number: 456, state: "closed", title: "test_delete_with_both", body: closed_body)
+        expect(@client).to receive(:close_issue).and_return(closed_issue)
+
+        # Mock cache methods - create a proper array for @issues
+        issues_array = [existing_issue]
+        allow(subject).to receive(:issues).and_return(issues_array)
+        subject.instance_variable_set(:@issues, issues_array)
+
+        expect(log).to receive(:debug).with(/issue deleted: test_delete_with_both/)
+
+        issue = subject.delete("test_delete_with_both", {
+          labels: ["archived", "resolved"],
+          assignees: ["maintainer1", "maintainer2"]
+        })
+        expect(issue).to be_a(IssueDB::Record)
+      end
     end
   end
 

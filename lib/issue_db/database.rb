@@ -31,11 +31,11 @@ module IssueDB
     # This will return the newly created issue as a Record object (parsed)
     # :param: key [String] the key (issue title) to create
     # :param: data [Hash] the data to use for the issue body
-    # :param: options [Hash] a hash of options containing extra data such as body_before and body_after
+    # :param: options [Hash] a hash of options containing extra data such as body_before, body_after, labels, and assignees
     # :return: The newly created issue as a Record object
     # usage example:
     # data = { color: "blue", cool: true, popularity: 100, tags: ["tag1", "tag2"] }
-    # options = { body_before: "some text before the data", body_after: "some text after the data", include_closed: true }
+    # options = { body_before: "some text before the data", body_after: "some text after the data", include_closed: true, labels: ["priority:high", "bug"], assignees: ["username1", "username2"] }
     # db.create("event123", {cool: true, data: "here"}, options)
     def create(key, data, options = {})
       @log.debug("attempting to create: #{key}")
@@ -49,8 +49,24 @@ module IssueDB
 
       body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
+      # Prepare labels array - always include the library-managed label for create operations
+      labels = [@label]
+      if options[:labels] && options[:labels].is_a?(Array)
+        # Add user-provided labels but ensure the library label is not duplicated
+        user_labels = options[:labels].reject { |label| label == @label }
+        labels.concat(user_labels)
+      end
+
+      # Prepare API options hash
+      api_options = { labels: labels }
+
+      # Add assignees if provided
+      if options[:assignees] && options[:assignees].is_a?(Array)
+        api_options[:assignees] = options[:assignees]
+      end
+
       # if we make it here, no existing issues were found so we can safely create one
-      issue = @client.create_issue(@repo.full_name, key, body, { labels: @label })
+      issue = @client.create_issue(@repo.full_name, key, body, api_options)
 
       # ensure the cache is initialized before appending and handle race conditions
       current_issues = issues
@@ -78,11 +94,11 @@ module IssueDB
     # This will return the updated issue as a Record object (parsed)
     # :param: key [String] the key (issue title) to update
     # :param: data [Hash] the data to use for the issue body
-    # :param: options [Hash] a hash of options containing extra data such as body_before and body_after
+    # :param: options [Hash] a hash of options containing extra data such as body_before, body_after, labels, and assignees
     # :return: The updated issue as a Record object
     # usage example:
     # data = { color: "blue", cool: true, popularity: 100, tags: ["tag1", "tag2"] }
-    # options = { body_before: "some text before the data", body_after: "some text after the data", include_closed: true }
+    # options = { body_before: "some text before the data", body_after: "some text after the data", include_closed: true, labels: ["priority:high", "bug"], assignees: ["username1", "username2"] }
     # db.update("event123", {cool: true, data: "here"}, options)
     def update(key, data, options = {})
       @log.debug("attempting to update: #{key}")
@@ -90,7 +106,25 @@ module IssueDB
 
       body = generate(data, body_before: options[:body_before], body_after: options[:body_after])
 
-      updated_issue = @client.update_issue(@repo.full_name, issue.number, key, body)
+      # Prepare the API call options
+      api_options = {}
+
+      # Only modify labels if the user explicitly provides them
+      if options[:labels] && options[:labels].is_a?(Array)
+        # Prepare labels array - always include the library-managed label
+        labels = [@label]
+        # Add user-provided labels but ensure the library label is not duplicated
+        user_labels = options[:labels].reject { |label| label == @label }
+        labels.concat(user_labels)
+        api_options[:labels] = labels
+      end
+
+      # Only modify assignees if the user explicitly provides them
+      if options[:assignees] && options[:assignees].is_a?(Array)
+        api_options[:assignees] = options[:assignees]
+      end
+
+      updated_issue = @client.update_issue(@repo.full_name, issue.number, key, body, api_options)
 
       # update the issue in the cache using the reference we have
       index = @issues.index(issue)
@@ -108,15 +142,34 @@ module IssueDB
 
     # Delete an issue/record from the database - in this context, "delete" means to close the issue as "completed"
     # :param: key [String] the key (issue title) to delete
-    # :param: options [Hash] a hash of options to pass through to the search method
+    # :param: options [Hash] a hash of options to pass through to the search method and control labels and assignees
     # :return: The deleted issue as a Record object (parsed) - it may contain useful data
     def delete(key, options = {})
       @log.debug("attempting to delete: #{key}")
       issue = find_issue_by_key(key, options)
 
-      deleted_issue = @client.close_issue(@repo.full_name, issue.number)
+      # For delete operations, only update labels and assignees if the user explicitly provides them
+      if (options[:labels] && options[:labels].is_a?(Array)) || (options[:assignees] && options[:assignees].is_a?(Array))
+        update_options = {}
 
-      # update the issue in the cache using the reference we have
+        if options[:labels] && options[:labels].is_a?(Array)
+          # Prepare labels array - always include the library-managed label
+          labels = [@label]
+          # Add user-provided labels but ensure the library label is not duplicated
+          user_labels = options[:labels].reject { |label| label == @label }
+          labels.concat(user_labels)
+          update_options[:labels] = labels
+        end
+
+        if options[:assignees] && options[:assignees].is_a?(Array)
+          update_options[:assignees] = options[:assignees]
+        end
+
+        # Update the issue with new labels and/or assignees before closing
+        @client.update_issue(@repo.full_name, issue.number, update_options)
+      end
+
+      deleted_issue = @client.close_issue(@repo.full_name, issue.number)      # update the issue in the cache using the reference we have
       index = @issues.index(issue)
       if index
         @issues[index] = deleted_issue
@@ -126,6 +179,7 @@ module IssueDB
         update_issue_cache!
       end
 
+      @log.debug("issue deleted: #{key}")
       # return the deleted issue as a Record object as it may contain useful data
       return Record.new(deleted_issue)
     end

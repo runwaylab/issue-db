@@ -197,13 +197,14 @@ This section will go into detail around how you can configure the `issue-db` gem
 
 ## Authentication 🔒
 
-The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have three options for authentication when using the `issue-db` gem:
+The `issue-db` gem uses the [`Octokit.rb`](https://github.com/octokit/octokit.rb) library under the hood for interactions with the GitHub API. You have four options for authentication when using the `issue-db` gem:
 
 > Note: The order displayed below is also the order of priority that this Gem uses to authenticate.
 
 1. Pass in your own authenticated `Octokit.rb` instance to the `IssueDB.new` method
-2. Use a GitHub App by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
-3. Use a GitHub personal access token by setting the `ISSUE_DB_GITHUB_TOKEN` environment variable
+2. Pass GitHub App authentication parameters directly to the `IssueDB.new` method
+3. Use a GitHub App by setting the `ISSUE_DB_GITHUB_APP_ID`, `ISSUE_DB_GITHUB_APP_INSTALLATION_ID`, and `ISSUE_DB_GITHUB_APP_KEY` environment variables
+4. Use a GitHub personal access token by setting the `ISSUE_DB_GITHUB_TOKEN` environment variable
 
 > Using a GitHub App is the suggested method
 
@@ -218,7 +219,31 @@ require "issue_db"
 db = IssueDB.new("<org>/<repo>") # THAT'S IT! 🎉
 ```
 
-### Using a GitHub App
+### Using GitHub App Parameters Directly
+
+You can now pass GitHub App authentication parameters directly to the `IssueDB.new` method. This is especially useful when you want to manage authentication credentials in your application code or when you have multiple GitHub Apps for different purposes:
+
+```ruby
+require "issue_db"
+
+# Pass GitHub App credentials directly to IssueDB.new
+db = IssueDB.new(
+  "<org>/<repo>",
+  app_id: 12345,                    # Your GitHub App ID
+  installation_id: 56789,          # Your GitHub App Installation ID
+  app_key: "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",  # Your GitHub App private key
+  app_algo: "RS256"                 # Optional: defaults to RS256
+)
+```
+
+**Parameters:**
+
+- `app_id` (Integer) - Your GitHub App ID (found on the App's settings page)
+- `installation_id` (Integer) - Your GitHub App Installation ID (found in the installation URL: `https://github.com/organizations/<org>/settings/installations/<installation_id>`)
+- `app_key` (String) - Your GitHub App private key (can be the key content as a string or a file path ending in `.pem`)
+- `app_algo` (String, optional) - The algorithm to use for JWT signing (defaults to "RS256")
+
+### Using a GitHub App with Environment Variables
 
 This is the single best way to use the `issue-db` gem because GitHub Apps have increased rate limits, fine-grained permissions, and are more secure than using a personal access token. All you have to do is provide three environment variables and the `issue-db` gem will take care of the rest:
 

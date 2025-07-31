@@ -25,6 +25,15 @@ describe IssueDB::Client do
     expect(instance).to be_a(IssueDB::Client)
   end
 
+  it "allows module-level instantiation with GitHub App parameters" do
+    expect(IssueDB::Authentication).to receive(:login)
+      .with(nil, log, app_id: "123", installation_id: "456", app_key: "-----KEY-----", app_algo: "RS256")
+      .and_return(client)
+
+    instance = IssueDB.new(REPO, log: log, app_id: "123", installation_id: "456", app_key: "-----KEY-----", app_algo: "RS256")
+    expect(instance).to be_a(IssueDB::Client)
+  end
+
   it "is a valid version string" do
     expect(subject.version).to match(/\A\d+\.\d+\.\d+(\.\w+)?\z/)
   end

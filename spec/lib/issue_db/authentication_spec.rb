@@ -35,6 +35,25 @@ describe IssueDB::Authentication do
     expect(IssueDB::Authentication.login).to eq(client)
   end
 
+  it "returns a hydrated octokit client from provided GitHub App parameters" do
+    expect(IssueDB::Utils::GitHub).to receive(:new)
+      .with(log: nil, app_id: "123", installation_id: "456", app_key: "-----KEY-----", app_algo: "RS256")
+      .and_return(client)
+    expect(IssueDB::Authentication.login(nil, nil, app_id: "123", installation_id: "456", app_key: "-----KEY-----", app_algo: "RS256")).to eq(client)
+  end
+
+  it "prioritizes provided GitHub App parameters over environment variables" do
+    # Set up environment variables that should be ignored
+    expect(ENV).not_to receive(:fetch).with("ISSUE_DB_GITHUB_APP_ID", nil)
+    expect(ENV).not_to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil)
+    expect(ENV).not_to receive(:fetch).with("ISSUE_DB_GITHUB_APP_KEY", nil)
+
+    expect(IssueDB::Utils::GitHub).to receive(:new)
+      .with(log: nil, app_id: "789", installation_id: "101112", app_key: "-----PROVIDED-KEY-----", app_algo: nil)
+      .and_return(client)
+    expect(IssueDB::Authentication.login(nil, nil, app_id: "789", installation_id: "101112", app_key: "-----PROVIDED-KEY-----")).to eq(client)
+  end
+
   it "raises an authentication error when no auth methods pass for octokit" do
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_ID", nil).and_return(nil)
     expect(ENV).to receive(:fetch).with("ISSUE_DB_GITHUB_APP_INSTALLATION_ID", nil).and_return(nil)

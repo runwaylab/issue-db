@@ -30,11 +30,15 @@ module IssueDB
     # :param label: The label to use for issues managed in the datastore by this library
     # :param cache_expiry: The number of seconds to cache issues in memory (default: 60)
     # :param init: Whether or not to initialize the database on object creation (default: true) - idempotent
+    # :param app_id: GitHub App ID (for GitHub App authentication)
+    # :param installation_id: GitHub App Installation ID (for GitHub App authentication)
+    # :param app_key: GitHub App private key (for GitHub App authentication)
+    # :param app_algo: GitHub App algorithm (for GitHub App authentication, defaults to RS256)
     # :return: A new IssueDB::Client object
-    def initialize(repo, log: nil, octokit_client: nil, label: nil, cache_expiry: nil, init: true)
+    def initialize(repo, log: nil, octokit_client: nil, label: nil, cache_expiry: nil, init: true, app_id: nil, installation_id: nil, app_key: nil, app_algo: nil)
       @log = log || RedactingLogger.new($stdout, level: ENV.fetch("LOG_LEVEL", "INFO").upcase)
       @version = VERSION
-      @client = Authentication.login(octokit_client, @log)
+      @client = Authentication.login(octokit_client, @log, app_id:, installation_id:, app_key:, app_algo:)
       @repo = Repository.new(repo)
       @label = label || ENV.fetch("ISSUE_DB_LABEL", "issue-db")
       @cache_expiry = cache_expiry || ENV.fetch("ISSUE_DB_CACHE_EXPIRY", 60).to_i

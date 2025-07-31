@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    issue-db (1.1.0)
+    issue-db (1.2.0)
       faraday-retry (~> 2.2, >= 2.2.1)
       jwt (>= 2.9.3, < 4.0)
       octokit (>= 9.2, < 11.0)

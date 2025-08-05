@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    issue-db (1.3.1)
+    issue-db (1.3.2)
       faraday-retry (~> 2.2, >= 2.2.1)
       jwt (>= 2.9.3, < 4.0)
       octokit (>= 9.2, < 11.0)
@@ -97,7 +97,7 @@ GEM
       psych (>= 4.0.0)
     redacting-logger (1.5.0)
       logger (~> 1.6)
-    regexp_parser (2.10.0)
+    regexp_parser (2.11.0)
     reline (0.6.2)
       io-console (~> 0.5)
     rexml (3.4.1)
@@ -114,7 +114,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.4)
-    rubocop (1.79.0)
+    rubocop (1.79.2)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -124,7 +124,6 @@ GEM
       regexp_parser (>= 2.9.3, < 3.0)
       rubocop-ast (>= 1.46.0, < 2.0)
       ruby-progressbar (~> 1.7)
-      tsort (>= 0.2.0)
       unicode-display_width (>= 2.4.0, < 4.0)
     rubocop-ast (1.46.0)
       parser (>= 3.3.7.2)
@@ -170,7 +169,6 @@ GEM
     simplecov_json_formatter (0.1.4)
     stringio (3.1.7)
     thor (1.4.0)
-    tsort (0.2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.1.4)

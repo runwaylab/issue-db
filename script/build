@@ -11,6 +11,9 @@ if [[ "$CI" == "true" ]]; then
   echo "gem_name=$GEM_NAME" >> $GITHUB_OUTPUT
   echo "gem_version=$GEM_VERSION" >> $GITHUB_OUTPUT
   echo "gem_path=$GEM_NAME-$GEM_VERSION.gem" >> $GITHUB_OUTPUT
+  mkdir -p dist/
+  mv $GEM_NAME-$GEM_VERSION.gem dist/
+  echo "artifact_dir=dist" >> $GITHUB_OUTPUT
 fi
 
 echo -e "📦 ${GREEN}successfully${OFF} built ${PURPLE}$GEM_NAME-$GEM_VERSION.gem${OFF}"

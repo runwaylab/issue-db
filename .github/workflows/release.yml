@@ -29,7 +29,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # pin@v1.255.0
+      - uses: ruby/setup-ruby@efbf473cab83af4468e8606cc33eca9281bb213f # pin@v1.256.0
         with:
           bundler-cache: false
 
@@ -86,7 +86,7 @@ jobs:
         run: |
           GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} ${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem
 
-      - uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # pin@v1.255.0
+      - uses: ruby/setup-ruby@efbf473cab83af4468e8606cc33eca9281bb213f # pin@v1.256.0
         with:
           bundler-cache: false
 
@@ -94,7 +94,7 @@ jobs:
         run: script/bootstrap
 
       - name: Configure RubyGems Credentials
-        uses: rubygems/configure-rubygems-credentials@5983545a12aca7586405d58fe307bd5d366c78cc # pin@main
+        uses: rubygems/configure-rubygems-credentials@8ae0eaabe45f0a742d106f45e216640f4488922f # pin@main
 
       - name: sign ruby gem
         env:

@@ -33,8 +33,8 @@ describe IssueDB::Cache do
   describe "#update_issue_cache!" do
     context "when cache is updated successfully" do
       it "updates the issue cache and logs the update" do
-        search_response = double("search_response", total_count: 2, items: ["issue1", "issue2"])
-        allow(client).to receive(:search_issues).and_return(search_response)
+        issues_response = ["issue1", "issue2"]
+        allow(client).to receive(:issues).and_return(issues_response)
 
         expect(log).to receive(:debug).with("updating issue cache")
         expect(log).to receive(:debug).with("issue cache updated - cached 2 issues")
@@ -48,47 +48,48 @@ describe IssueDB::Cache do
 
     context "when a secondary rate limit error occurs" do
       it "raises the error (handled by GitHub client)" do
-        allow(client).to receive(:search_issues).and_raise(StandardError.new("exceeded a secondary rate limit"))
+        allow(client).to receive(:issues).and_raise(StandardError.new("exceeded a secondary rate limit"))
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(log).to receive(:error).with("error search_issues() call: exceeded a secondary rate limit")
+        expect(log).to receive(:error).with("error issues() call: exceeded a secondary rate limit")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: exceeded a secondary rate limit")
+        expect { dummy_instance.update_issue_cache! }.to raise_error("error issues() call: exceeded a secondary rate limit")
       end
     end
 
     context "when another error occurs" do
       it "logs an error message and raises the error" do
-        allow(client).to receive(:search_issues).and_raise(StandardError.new("some other error"))
+        allow(client).to receive(:issues).and_raise(StandardError.new("some other error"))
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(log).to receive(:error).with("error search_issues() call: some other error")
+        expect(log).to receive(:error).with("error issues() call: some other error")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error("error search_issues() call: some other error")
+        expect { dummy_instance.update_issue_cache! }.to raise_error("error issues() call: some other error")
       end
     end
 
-    context "when search_issues returns nil response" do
+    context "when issues API returns nil response" do
       it "logs an error and raises a StandardError" do
-        allow(client).to receive(:search_issues).and_return(nil)
+        allow(client).to receive(:issues).and_return(nil)
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(log).to receive(:error).with("search_issues returned nil response or nil items")
+        expect(log).to receive(:error).with("issues API returned nil response")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, "search_issues returned invalid response")
+        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, "issues API returned invalid response")
       end
     end
 
-    context "when search_issues returns response with nil items" do
-      it "logs an error and raises a StandardError" do
-        nil_items_response = double("response")
-        allow(nil_items_response).to receive(:items).and_return(nil)
-        allow(client).to receive(:search_issues).and_return(nil_items_response)
+    context "when issues API returns single issue instead of array" do
+      it "converts to array and works correctly" do
+        single_issue = { title: "single_issue", number: 1 }
+        allow(client).to receive(:issues).and_return(single_issue)
 
         expect(log).to receive(:debug).with("updating issue cache")
-        expect(log).to receive(:error).with("search_issues returned nil response or nil items")
+        expect(log).to receive(:debug).with("issue cache updated - cached 1 issues")
 
-        expect { dummy_instance.update_issue_cache! }.to raise_error(StandardError, "search_issues returned invalid response")
+        result = dummy_instance.update_issue_cache!
+        expect(result).to eq([single_issue])
+        expect(dummy_instance.issues).to eq([single_issue])
       end
     end
   end

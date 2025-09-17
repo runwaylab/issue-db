@@ -30,8 +30,10 @@ describe IssueDB::Init do
           "user/repo",
           "issue-db",
           "000000",
-          { description: "This issue is managed by the issue-db Ruby library. Please do not remove this label." },
-          disable_retry: true
+          {
+            description: "This issue is managed by the issue-db Ruby library. Please do not remove this label.",
+            disable_retry: true
+          }
         )
 
         dummy_instance.init!
@@ -44,8 +46,10 @@ describe IssueDB::Init do
           "user/repo",
           "issue-db",
           "000000",
-          { description: "This issue is managed by the issue-db Ruby library. Please do not remove this label." },
-          disable_retry: true
+          {
+            description: "This issue is managed by the issue-db Ruby library. Please do not remove this label.",
+            disable_retry: true
+          }
         ).and_raise(StandardError.new("already_exists"))
 
         expect(log).to receive(:debug).with("label issue-db already exists")
@@ -60,8 +64,10 @@ describe IssueDB::Init do
           "user/repo",
           "issue-db",
           "000000",
-          { description: "This issue is managed by the issue-db Ruby library. Please do not remove this label." },
-          disable_retry: true
+          {
+            description: "This issue is managed by the issue-db Ruby library. Please do not remove this label.",
+            disable_retry: true
+          }
         ).and_raise(StandardError.new("some other error"))
 
         expect(log).to receive(:error).with("error creating label: some other error")
@@ -74,8 +80,10 @@ describe IssueDB::Init do
           "user/repo",
           "issue-db",
           "000000",
-          { description: "This issue is managed by the issue-db Ruby library. Please do not remove this label." },
-          disable_retry: true
+          {
+            description: "This issue is managed by the issue-db Ruby library. Please do not remove this label.",
+            disable_retry: true
+          }
         ).and_raise(StandardError.new("some other error"))
         allow(ENV).to receive(:fetch).with("ENV", nil).and_return("acceptance")
 

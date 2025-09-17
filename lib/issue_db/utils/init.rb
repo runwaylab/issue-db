@@ -10,8 +10,10 @@ module IssueDB
           @repo.full_name,
           @label,
           "000000",
-          { description: "This issue is managed by the issue-db Ruby library. Please do not remove this label." },
-          disable_retry: true
+          {
+            description: "This issue is managed by the issue-db Ruby library. Please do not remove this label.",
+            disable_retry: true
+          }
         )
       rescue StandardError => e
         if e.message.include?("already_exists")

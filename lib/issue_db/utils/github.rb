@@ -280,6 +280,12 @@ module IssueDB
         # Check if retry is explicitly disabled for this call
         disable_retry = kwargs.delete(:disable_retry) || false
 
+        # For add_label method, also check if disable_retry is in the options hash (last positional arg)
+        if method.to_s == "add_label" && args.length >= 4 && args.last.is_a?(Hash)
+          options_hash = args.last
+          disable_retry = options_hash.delete(:disable_retry) || disable_retry
+        end
+
         # Determine the rate limit type based on the method name and arguments
         rate_limit_type = case method.to_s
                           when /search_/

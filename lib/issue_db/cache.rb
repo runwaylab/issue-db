@@ -7,27 +7,33 @@ module IssueDB
     def update_issue_cache!
       @log.debug("updating issue cache")
 
-      # find all issues in the repo that were created by this library
-      query = "repo:#{@repo.full_name} label:#{@label}"
-
-      search_response = nil
+      issues_response = nil
       begin
-        # issues structure: { "total_count": 0, "incomplete_results": false, "items": [<issues>] }
-        search_response = @client.search_issues(query)
+        # This fetches all issues with the specified label from the repository. This label identifies all issues...
+        # ... that are managed via this library.
+        # The client.auto_paginate setting will handle pagination automatically
+        issues_response = @client.issues(@repo.full_name, labels: @label, state: "all")
+      rescue Octokit::Unauthorized => e
+        # Re-throw authentication errors unchanged for clear user feedback
+        raise e
       rescue StandardError => e
-        retry_err_msg = "error search_issues() call: #{e.message}"
+        # For other errors, wrap with context
+        retry_err_msg = "error issues() call: #{e.message}"
         @log.error(retry_err_msg)
         raise StandardError, retry_err_msg
       end
 
-      # Safety check to ensure search_response and items are not nil
-      if search_response.nil? || search_response.items.nil?
-        @log.error("search_issues returned nil response or nil items")
-        raise StandardError, "search_issues returned invalid response"
+      # Safety check to ensure issues_response is not nil
+      if issues_response.nil?
+        @log.error("issues API returned nil response")
+        raise StandardError, "issues API returned invalid response"
       end
 
-      @log.debug("issue cache updated - cached #{search_response.total_count} issues")
-      @issues = search_response.items
+      # Convert to array if it's a single issue (shouldn't happen with auto_paginate, but safety first)
+      issues_response = [issues_response] unless issues_response.is_a?(Array)
+
+      @log.debug("issue cache updated - cached #{issues_response.length} issues")
+      @issues = issues_response
       @issues_last_updated = Time.now
       return @issues
     end

@@ -148,7 +148,7 @@ describe IssueDB::Database, :vcr do
   context "update" do
     it "updates an issue successfully" do
       issue = subject.update("event999", { cool: false })
-      expect(issue.source_data.number).to eq(12)
+      expect(issue.source_data.number).to eq(11)
       expect(issue.source_data.state).to eq("open")
     end
 
@@ -281,6 +281,7 @@ describe IssueDB::Database, :vcr do
       # Verify the closed record has the correct state
       closed_record = all_records.find { |r| r.key == "event999" }
       expect(closed_record.source_data.state).to eq("closed")
+      expect(closed_record.source_data.number).to eq(11)
     end
 
     it "deletes an issue with additional labels before closing" do
@@ -630,18 +631,18 @@ describe IssueDB::Database, :vcr do
   context "list" do
     it "lists all records successfully" do
       records = subject.list
-      expect(records.first.data).to eq({ "age" => 333, "apple" => "red", "cool" => true, "user" => "mona" })
       expect(records.first.source_data.number).to eq(8)
       expect(records.last.source_data.number).to eq(6)
       expect(records.size).to eq(3)
+      expect(records.first.data).to eq({ "age" => 333, "apple" => "red", "cool" => true, "user" => "mona" })
     end
   end
 
   context "refresh!" do
     it "refreshes the cache successfully" do
       results = subject.refresh!
-      expect(results.length).to eq(5)
-      expect(results.first.number).to eq(11)
+      expect(results.length).to eq(8)
+      expect(results.first.number).to eq(19)
     end
   end
 

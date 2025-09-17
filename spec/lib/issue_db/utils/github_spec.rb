@@ -408,6 +408,134 @@ describe IssueDB::Utils::GitHub do
       allow(mock_client).to receive(:respond_to?).with(:private_method, true).and_return(true)
       expect(github.respond_to?(:private_method, true)).to be true
     end
+
+    context "add_label method with disable_retry in options hash" do
+      before do
+        # Mock the rate limit call that happens in wait_for_rate_limit!
+        allow(mock_client).to receive(:get).with("rate_limit").and_return(default_rate_limit_response)
+      end
+
+      it "extracts disable_retry from options hash and passes clean options to Octokit" do
+        options_with_disable_retry = {
+          description: "Test label",
+          disable_retry: true
+        }
+
+        expected_clean_options = {
+          description: "Test label"
+        }
+
+        allow(mock_client).to receive(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000",
+          expected_clean_options
+        ).and_return("label_created")
+
+        result = github.add_label("owner/repo", "test-label", "ff0000", options_with_disable_retry)
+        expect(result).to eq("label_created")
+        expect(mock_client).to have_received(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000",
+          expected_clean_options
+        )
+      end
+
+      it "handles disable_retry in options hash and skips retry on failure" do
+        options_with_disable_retry = {
+          description: "Test label",
+          disable_retry: true
+        }
+
+        error = StandardError.new("API error")
+        allow(mock_client).to receive(:add_label).and_raise(error)
+
+        expect { github.add_label("owner/repo", "test-label", "ff0000", options_with_disable_retry) }.to raise_error(error)
+        expect(mock_client).to have_received(:add_label).once # Should not retry
+      end
+
+      it "handles options hash without disable_retry normally" do
+        options_without_disable_retry = {
+          description: "Test label",
+          color: "blue"
+        }
+
+        allow(mock_client).to receive(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000",
+          options_without_disable_retry
+        ).and_return("label_created")
+
+        result = github.add_label("owner/repo", "test-label", "ff0000", options_without_disable_retry)
+        expect(result).to eq("label_created")
+      end
+
+      it "prioritizes keyword argument disable_retry over options hash disable_retry" do
+        options_with_disable_retry = {
+          description: "Test label",
+          disable_retry: false  # This should be overridden
+        }
+
+        expected_clean_options = {
+          description: "Test label"
+        }
+
+        allow(mock_client).to receive(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000",
+          expected_clean_options
+        ).and_return("label_created")
+
+        # Keyword argument should take precedence
+        result = github.add_label("owner/repo", "test-label", "ff0000", options_with_disable_retry, disable_retry: true)
+        expect(result).to eq("label_created")
+      end
+
+      it "works with minimal arguments (no options hash)" do
+        allow(mock_client).to receive(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000"
+        ).and_return("label_created")
+
+        result = github.add_label("owner/repo", "test-label", "ff0000")
+        expect(result).to eq("label_created")
+      end
+
+      it "handles non-hash fourth argument gracefully" do
+        # If someone passes a non-hash as the fourth argument, it should not crash
+        allow(mock_client).to receive(:add_label).with(
+          "owner/repo",
+          "test-label",
+          "ff0000",
+          "not_a_hash"
+        ).and_return("label_created")
+
+        result = github.add_label("owner/repo", "test-label", "ff0000", "not_a_hash")
+        expect(result).to eq("label_created")
+      end
+
+      it "only processes disable_retry for add_label method, not other methods" do
+        options_with_disable_retry = {
+          description: "Test description",
+          disable_retry: true
+        }
+
+        # For non-add_label methods, disable_retry should remain in the options
+        allow(mock_client).to receive(:create_issue).with(
+          "owner/repo",
+          "Test Issue",
+          "Body",
+          options_with_disable_retry  # disable_retry should NOT be filtered out
+        ).and_return("issue_created")
+
+        result = github.create_issue("owner/repo", "Test Issue", "Body", options_with_disable_retry)
+        expect(result).to eq("issue_created")
+      end
+    end
   end
 
   describe "integration scenarios" do

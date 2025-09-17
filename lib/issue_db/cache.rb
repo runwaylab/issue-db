@@ -13,7 +13,11 @@ module IssueDB
         # ... that are managed via this library.
         # The client.auto_paginate setting will handle pagination automatically
         issues_response = @client.issues(@repo.full_name, labels: @label, state: "all")
+      rescue Octokit::Unauthorized => e
+        # Re-throw authentication errors unchanged for clear user feedback
+        raise e
       rescue StandardError => e
+        # For other errors, wrap with context
         retry_err_msg = "error issues() call: #{e.message}"
         @log.error(retry_err_msg)
         raise StandardError, retry_err_msg

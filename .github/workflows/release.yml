@@ -29,7 +29,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@e65c17d16e57e481586a6a5a0282698790062f92 # pin@v1.300.0
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # pin@v1.301.0
         with:
           bundler-cache: false
 
@@ -46,7 +46,7 @@ jobs:
         run: script/build
 
       - name: upload artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # pin@v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # pin@v7.0.1
         id: upload-artifact
         with:
           name: ${{ steps.build.outputs.artifact_dir }}
@@ -86,7 +86,7 @@ jobs:
         run: |
           GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} ${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem
 
-      - uses: ruby/setup-ruby@e65c17d16e57e481586a6a5a0282698790062f92 # pin@v1.300.0
+      - uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # pin@v1.301.0
         with:
           bundler-cache: false
 

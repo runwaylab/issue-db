@@ -25,11 +25,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # pin@v6
         with:
           persist-credentials: false
 
-      - uses: ruby/setup-ruby@e65c17d16e57e481586a6a5a0282698790062f92 # pin@v1.300.0
+      - uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # pin@v1.314.0
         with:
           bundler-cache: false
 
@@ -46,7 +46,7 @@ jobs:
         run: script/build
 
       - name: upload artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # pin@v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # pin@v7.0.1
         id: upload-artifact
         with:
           name: ${{ steps.build.outputs.artifact_dir }}
@@ -62,7 +62,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # pin@v6
         with:
           persist-credentials: false
 
@@ -86,7 +86,7 @@ jobs:
         run: |
           GEM_HOST_API_KEY=${GITHUB_TOKEN} gem push --key github --host https://rubygems.pkg.github.com/${OWNER} ${ARTIFACT_PATH}/${GEM_NAME}-${GEM_VERSION}.gem
 
-      - uses: ruby/setup-ruby@e65c17d16e57e481586a6a5a0282698790062f92 # pin@v1.300.0
+      - uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # pin@v1.314.0
         with:
           bundler-cache: false
 
@@ -94,7 +94,7 @@ jobs:
         run: script/bootstrap
 
       - name: Configure RubyGems Credentials
-        uses: rubygems/configure-rubygems-credentials@3d549bd0e55c3910ffb5515bf38d6e7f3e5be570 # pin@main
+        uses: rubygems/configure-rubygems-credentials@abfabee9aa68f1c2c95a6f58c91d826e5fac33da # pin@main
 
       - name: sign ruby gem
         env:
@@ -144,7 +144,7 @@ jobs:
           artifact-ids: ${{ needs.build.outputs.artifact-id }}
 
       - name: attest build provenance
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # pin@v4.1.0
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # pin@v4.1.1
         with:
           subject-path: "${{ needs.build.outputs.artifact_dir }}/${{ needs.build.outputs.gem_path }}"
 
